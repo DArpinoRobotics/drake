@@ -32,7 +32,7 @@ swing2.pos(4:6) = swing1.pos(4:6) + angleDiff(swing1.pos(4:6), swing2.pos(4:6));
 % The terrain slice is a 2xN matrix, where the first row is distance along the straight line path from swing1 to swing2 and the second row is height above the z position of swing1.
 terrain_slice = swing2.terrain_pts;
 xy_dist = norm(swing2.pos(1:2) - swing1.pos(1:2));
-terrain_slice = [terrain_slice, [0.25 * xy_dist, 0.75 * xy_dist; 0, 0]]; % make sure we at least create a step apex 
+terrain_slice = [terrain_slice, [0, xy_dist; 0, 0]]; % make sure we at least create a step apex 
 
 terrain_pts_in_local = [terrain_slice(1,:); zeros(1, size(terrain_slice, 2)); 
                         terrain_slice(2,:)];
@@ -126,9 +126,10 @@ swing2_toe_constraint = WorldPositionConstraint(biped,swing_body_index, ...
 % Create collision avoidance constraint
 % Only consider swing foot and world
 active_collision_options.body_idx = [1,swing_body_index];
+params.step_height
 min_distance_constraint = MinDistanceConstraint(biped, params.step_height, ...
                             active_collision_options, ...
-                            [t_toe_lift+0.2,t_heel_land-0.2]);
+                            [t_toe_lift+0.1,t_heel_land-0.1]);
                 
 constraints = { ...
   upper_body_posture_constraint,...
@@ -196,7 +197,7 @@ step_duration = toe_land_time + 0.5 * hold_time;
 
 instep_shift = [0.0;stance.walking_params.drake_instep_shift;0];
 zmp1 = shift_step_inward(biped, stance, instep_shift);
-zmp2 = mean([swing1.pos(1:2), swing2.pos(1:2)], 2);
+zmp2 = mean([stance.pos(1:2), swing2.pos(1:2)], 2);
 
 zmp_knots = struct('t', {}, 'zmp', {}, 'supp', {});
 zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_ind, swing_body_ind], {{'heel', 'toe'}, {'toe'}}));
