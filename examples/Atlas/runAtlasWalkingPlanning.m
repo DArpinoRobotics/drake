@@ -40,7 +40,5 @@ end
 
 v.playback(xtraj, struct('slider', true));
 
-
-
 end
 
