@@ -101,20 +101,10 @@ zmpf = mean([steps.right(end).pos(1:2), steps.left(end).pos(1:2)]);
 zmp_knots(end+1) =  struct('t', step_knots(end).t, 'zmp', zmpf, 'supp', RigidBodySupportState(biped, [rfoot_body_idx, lfoot_body_idx]));
 
 % Build trajectories
-bodytraj = containers.Map('KeyType', 'int32', 'ValueType', 'any');
 link_constraints = struct('link_ndx',{}, 'pt', {}, 'traj', {}, 'dtraj', {}, 'ddtraj', {});
 for f = {'right', 'left'}
   foot = f{1};
-  frame_id = biped.foot_frame_id.(foot);
-  body_ind = biped.getFrame(frame_id).body_ind;
-  T = biped.getFrame(frame_id).T;
   step_poses = [step_knots.(foot)];
-  for j = 1:size(step_poses, 2);
-    Tsole = [rpy2rotmat(step_poses(4:6,j)), step_poses(1:3,j); 0 0 0 1];
-    Torig = Tsole * inv(T);
-    step_poses(:,j) = [Torig(1:3,4); rotmat2rpy(Torig(1:3,1:3))];
-    step_poses(step_knots(j).([foot, '_isnan']), j) = nan;
-  end
   link_constraints(end+1) = struct('link_ndx', body_ind, 'pt', [0;0;0], 'min_traj', [], 'max_traj', [], 'traj', PPTrajectory(foh([step_knots.t], step_poses)));
 end
 zmptraj = PPTrajectory(foh([zmp_knots.t], [zmp_knots.zmp]));
