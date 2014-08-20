@@ -80,7 +80,7 @@ classdef FootstepPlan
       end
       ts = zeros(1, length(obj.footsteps));
       for j = 3:length(obj.footsteps)
-        [swing_ts, ~, ~, ~] = planSwing(biped, obj.footsteps(j-2), obj.footsteps(j));
+        [swing_ts, ~, ~, ~] = planSwing(biped, obj.footsteps(j-1), obj.footsteps(j-2), obj.footsteps(j));
         ts(j) = ts(j-1) + swing_ts(end);
       end
     end
