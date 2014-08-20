@@ -33,12 +33,6 @@ for f = {'left', 'right'}
   end
 end
 
-function pos = feetCenter(rstep,lstep)
-  rcen = rstep.pos;
-  lcen = lstep.pos;
-  pos = mean([rcen(1:3,:),lcen(1:3,:)],2);
-end
-
 rfoot_body_idx = biped.getFrame(biped.foot_frame_id.right).body_ind;
 lfoot_body_idx = biped.getFrame(biped.foot_frame_id.left).body_ind;
 zmp0 = [];
@@ -48,19 +42,28 @@ if steps.right(1).is_in_contact
   zmp0(:,end+1) = z(1:2);
   initial_supports(end+1) = rfoot_body_idx;
 end
-if supp0.left
+if steps.left(1).is_in_contact
   z = steps.left(1).pos;
   zmp0(:,end+1) = z(1:2);
   initial_supports(end+1) = lfoot_body_idx;
 end
 zmp0 = mean(zmp0, 2);
 supp0 = RigidBodySupportState(biped, initial_supports);
-
-
-step_knots = struct('t', options.t0, ...
-  'right', steps.right(1).pos,...
-  'left', steps.left(1).pos,...
 zmp_knots = struct('t', options.t0, 'zmp', zmp0, 'supp', supp0);
+
+foot_origin_knots = struct('t', options.t0, ...
+  'right', zeros(6,1),...
+  'left', zeros(6,1));
+for f = {'right', 'left'}
+  foot = f{1};
+  frame_id = biped.foot_frame_id.(foot);
+  body_ind = biped.getFrame(frame_id).body_ind;
+  T = biped.getFrame(frame_id).T;
+  sole_pose = steps.(foot)(1).pos;
+  Tsole = [rpy2rotmat(sole_pose(4:6)), sole_pose(1:3); 0 0 0 1];
+  Torig = Tsole * inv(T);
+  foot_origin_knots.(foot) = [Torig(1:3,4); rotmat2rpy(Torig(1:3,1:3))];
+end
 
 istep = struct('right', 1, 'left', 1);
 is_first_step = true;
@@ -81,8 +84,11 @@ while 1
     sw1.walking_params.drake_min_hold_time = options.first_step_hold_s;
     is_first_step = false;
   end
-  [new_step_knots, new_zmp_knots] = planSwing(biped, st, sw0, sw1);
-  step_knots = [step_knots, new_step_knots];
+  [new_foot_knots, new_zmp_knots] = planSwing(biped, st, sw0, sw1);
+  t0 = foot_origin_knots(end).t;
+  [new_foot_knots.t] = new_foot_knots.t + t0;
+  [new_zmp_knots.t] = zmp_knots.t + t0;
+  foot_origin_knots = [foot_origin_knots, new_foot_knots];
   zmp_knots = [zmp_knots, new_zmp_knots];
 
   istep.(sw_foot) = istep.(sw_foot) + 1;
@@ -94,18 +100,25 @@ while 1
 end
 
 % add a segment at the end to recover
-t0 = step_knots(end).t;
-step_knots(end+1) = step_knots(end);
-step_knots(end).t = t0 + 1.5;
+t0 = foot_origin_knots(end).t;
+foot_origin_knots(end+1) = foot_origin_knots(end);
+foot_origin_knots(end).t = t0 + 1.5;
 zmpf = mean([steps.right(end).pos(1:2), steps.left(end).pos(1:2)]);
-zmp_knots(end+1) =  struct('t', step_knots(end).t, 'zmp', zmpf, 'supp', RigidBodySupportState(biped, [rfoot_body_idx, lfoot_body_idx]));
+zmp_knots(end+1) =  struct('t', foot_origin_knots(end).t, 'zmp', zmpf, 'supp', RigidBodySupportState(biped, [rfoot_body_idx, lfoot_body_idx]));
 
 % Build trajectories
 link_constraints = struct('link_ndx',{}, 'pt', {}, 'traj', {}, 'dtraj', {}, 'ddtraj', {});
 for f = {'right', 'left'}
   foot = f{1};
-  step_poses = [step_knots.(foot)];
-  link_constraints(end+1) = struct('link_ndx', body_ind, 'pt', [0;0;0], 'min_traj', [], 'max_traj', [], 'traj', PPTrajectory(foh([step_knots.t], step_poses)));
+  foot_poses = [foot_origin_knots.(foot)];
+  for j = 4:6
+    % Unwrap rpy angles
+    foot_poses(j,2:end) = foot_poses(j,1:end-1) + angleDiff(foot_poses(j,1:end-1), foot_poses(j,2:end));
+  end
+  foot_traj = PPTrajectory(spline([foot_origin_knots.t], foot_poses));
+  dtraj = fnder(foot_traj);
+  ddtraj = fnder(dtraj);
+  link_constraints(end+1) = struct('link_ndx', body_ind, 'pt', [0;0;0], 'traj', foot_traj, 'dtraj', dtraj, 'ddtraj', ddtraj);
 end
 zmptraj = PPTrajectory(foh([zmp_knots.t], [zmp_knots.zmp]));
 
