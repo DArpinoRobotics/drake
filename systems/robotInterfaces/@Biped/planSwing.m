@@ -37,7 +37,23 @@ apex_pos(3,:) = last_pos(3) + params.step_height + max([next_pos(3) - last_pos(3
 
 apex_pos_l = [apex_fracs * step_dist_xy; apex_pos(3,:)];
 
-terrain_pts = step2.terrain_pts;
+% The terrain slice is a 2xN matrix, where the first row is distance along the straight line path from swing1 to swing2 and the second row is height above the z position of swing1.
+terrain_slice = step2.terrain_pts;
+terrain_pts_in_local = [terrain_slice(1,:); zeros(1, size(terrain_slice, 2)); 
+                        terrain_slice(2,:)];
+
+% Extend the terrain slice in the direction perpendicular to the swing
+terrain_pts_in_local = [bsxfun(@plus, terrain_pts_in_local, [0;-1;0]), ...
+                        bsxfun(@plus, terrain_pts_in_local, [0;1;0])];
+
+% Transform to world coordinates
+T_local_to_world = [[rotmat(atan2(next_pos(2) - last_pos(2), next_pos(1) - last_pos(1))), [0;0];
+                     0, 0, 1], last_pos(1:3); 
+                    0, 0, 0, 1];
+terrain_pts_in_world = T_local_to_world * [terrain_pts_in_local; ones(1, size(terrain_pts_in_local, 2))];
+terrain_pts_in_world = terrain_pts_in_world(1:3,:);
+
+
 if step_dist_xy > 0.01 && ~isempty(terrain_pts)
   if any(terrain_pts(2,:) > (max([last_pos(3), next_pos(3)]) + ignore_height))
     % If we're getting extremely high terrain heights, then assume it's bad lidar data
