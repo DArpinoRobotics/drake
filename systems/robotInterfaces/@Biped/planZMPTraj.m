@@ -57,7 +57,6 @@ foot_origin_knots = struct('t', options.t0, ...
 for f = {'right', 'left'}
   foot = f{1};
   frame_id = biped.foot_frame_id.(foot);
-  body_ind = biped.getFrame(frame_id).body_ind;
   T = biped.getFrame(frame_id).T;
   sole_pose = steps.(foot)(1).pos;
   Tsole = [rpy2rotmat(sole_pose(4:6)), sole_pose(1:3); 0 0 0 1];
@@ -86,8 +85,12 @@ while 1
   end
   [new_foot_knots, new_zmp_knots] = planSwing(biped, st, sw0, sw1);
   t0 = foot_origin_knots(end).t;
-  [new_foot_knots.t] = new_foot_knots.t + t0;
-  [new_zmp_knots.t] = zmp_knots.t + t0;
+  for k = 1:length(new_foot_knots)
+    new_foot_knots(k).t = new_foot_knots(k).t + t0;
+  end
+  for k = 1:length(new_zmp_knots)
+    new_zmp_knots(k).t = new_zmp_knots(k).t + t0;
+  end
   foot_origin_knots = [foot_origin_knots, new_foot_knots];
   zmp_knots = [zmp_knots, new_zmp_knots];
 
@@ -103,7 +106,7 @@ end
 t0 = foot_origin_knots(end).t;
 foot_origin_knots(end+1) = foot_origin_knots(end);
 foot_origin_knots(end).t = t0 + 1.5;
-zmpf = mean([steps.right(end).pos(1:2), steps.left(end).pos(1:2)]);
+zmpf = mean([steps.right(end).pos(1:2), steps.left(end).pos(1:2)], 2);
 zmp_knots(end+1) =  struct('t', foot_origin_knots(end).t, 'zmp', zmpf, 'supp', RigidBodySupportState(biped, [rfoot_body_idx, lfoot_body_idx]));
 
 % Build trajectories
@@ -111,6 +114,8 @@ link_constraints = struct('link_ndx',{}, 'pt', {}, 'traj', {}, 'dtraj', {}, 'ddt
 for f = {'right', 'left'}
   foot = f{1};
   foot_poses = [foot_origin_knots.(foot)];
+  frame_id = biped.foot_frame_id.(foot);
+  body_ind = biped.getFrame(frame_id).body_ind;
   for j = 4:6
     % Unwrap rpy angles
     foot_poses(j,2:end) = foot_poses(j,1:end-1) + angleDiff(foot_poses(j,1:end-1), foot_poses(j,2:end));
