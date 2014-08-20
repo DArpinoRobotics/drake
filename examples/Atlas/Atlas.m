@@ -72,6 +72,10 @@ classdef Atlas < TimeSteppingRigidBodyManipulator & Biped
       x0 = obj.x0;
     end
 
+    function ind = getLegJointPositionIndices(obj)
+      ind = obj.findJointIndices('leg');
+    end
+
     function weights = getFootstepOptimizationWeights(obj)
       % Return a reasonable set of default weights for the footstep planner
       % optimization. The weights describe the following quantities:
@@ -186,6 +190,8 @@ classdef Atlas < TimeSteppingRigidBodyManipulator & Biped
     default_walking_params = struct('step_speed', 0.3,... % speed of the swing foot (m/s)
                                     'step_height', 0.065,... % approximate clearance over terrain (m)
                                     'hold_frac', 0.4,... % fraction of the swing time spent in double support
+                                    'toe_support_frac', 1,... % fraction of swing time spent on toe support
+                                    'heel_support_frac', 1,... % fraction of swing time spent on heel support
                                     'drake_min_hold_time', 1.0,... % minimum time in double support (s)
                                     'drake_instep_shift', 0.0275,... % Distance to shift ZMP trajectory inward toward the instep from the center of the foot (m)
                                     'mu', 1.0,... % friction coefficient
