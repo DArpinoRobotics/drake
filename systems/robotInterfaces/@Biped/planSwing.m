@@ -135,4 +135,27 @@ if debug
   axis equal
 end
 
+instep_shift = [0.0;st.walking_params.drake_instep_shift;0];
+zmp1 = shift_step_inward(biped, st, instep_shift);
+zmp2 = mean([swing1.pos(1:2), swing2.pos(1:2)]);
+stance_body_ind = biped.getFrame(stance.frame_id).body_ind;
+swing_body_ind = biped.getFrame(swing1.frame_id).body_ind;
+
+zmp_knots = struct('t', {}, 'zmp', {}, 'supp', {});
+zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_ind, swing_body_ind], {{'heel', 'toe'}, {'toe'}}));
+zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, stance_body_ind));
+zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_ind, swing_body_ind], {{'heel', 'toe'}, {'heel'}}));
+zmp_knots(end+1) = struct('t', toe_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_ind, swing_body_ind]));
+zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2, 'supp', RigidBodySupportState(biped, [stance_body_ind, swing_body_ind]));
+
+end
+
+function pos = shift_step_inward(biped, step, instep_shift)
+  if step.frame_id == biped.foot_frame_id.left
+    instep_shift = [1;-1;1].*instep_shift;
+  end
+  pos_center = step.pos;
+  R = rpy2rotmat(pos_center(4:6));
+  shift = R*instep_shift;
+  pos = pos_center(1:2) + shift(1:2);
 end
