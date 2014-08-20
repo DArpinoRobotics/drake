@@ -7,7 +7,7 @@ params = struct(swing2.walking_params);
 params = applyDefaults(params, biped.default_walking_params);
 
 DEBUG = true;
-v = biped.constructVisualizer();
+% v = biped.constructVisualizer();
 
 ignore_height = 0.5; % m, height above which we'll assume that our heightmap is giving us bad data (e.g. returns from an object the robot is carrying)
 
@@ -149,7 +149,7 @@ ikoptions = ikoptions.setAdditionaltSamples(t_samples);
 [xtraj,info] = inverseKinTraj(biped,t,q_nom_traj,q_nom_traj, ...
                               constraints{:},ikoptions);
 info
-v.playback(xtraj);
+% v.playback(xtraj);
 
 num_swing_samples = 10;
 foot_origin_knots = struct('t', {}, 'right', {}, 'left', {});
