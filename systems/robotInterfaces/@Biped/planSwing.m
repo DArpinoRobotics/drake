@@ -71,6 +71,10 @@ traj_pts_xyz = [last_pos(1) + (next_pos(1) - last_pos(1)) * traj_pts(1,:) / step
                 last_pos(2) + (next_pos(2) - last_pos(2)) * traj_pts(1,:) / step_dist_xy;
                 traj_pts(2,:)];
 
+% Create terrain geometry.
+terrain_geometry = RigidBodyMeshPoints(terrain_pts_in_world);
+biped = biped.addShapeToBody('world',terrain_geometry);
+biped = biped.compile();
 
 %% Compute time required for swing from cartesian distance of poses as well as yaw distance
 d_dist = sqrt(sum(diff(traj_pts_xyz, 1, 2).^2, 1));
