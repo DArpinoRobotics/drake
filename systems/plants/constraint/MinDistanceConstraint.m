@@ -36,6 +36,9 @@ classdef MinDistanceConstraint < SingleTimeKinematicConstraint
         tspan = [-inf inf];
       end
       if nargin < 3, active_collision_options = struct(); end;
+      if isfield(active_collision_options,'body_idx')
+        active_collision_options.body_idx = int32(active_collision_options.body_idx);
+      end
       sizecheck(min_distance,[1,1]);
       assert(min_distance>0);
       ptr = constructPtrRigidBodyConstraintmex(RigidBodyConstraint.MinDistanceConstraintType,robot.getMexModelPtr,min_distance,active_collision_options,tspan);
