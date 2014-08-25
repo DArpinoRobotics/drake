@@ -191,7 +191,9 @@ classdef Atlas < TimeSteppingRigidBodyManipulator & Biped
                                     'step_height', 0.065,... % approximate clearance over terrain (m)
                                     'hold_frac', 0.4,... % fraction of the swing time spent in double support
                                     'toe_support_frac', 1,... % fraction of swing time spent on toe support
-                                    'heel_support_frac', 1,... % fraction of swing time spent on heel support
+                                    'swing_rise_frac', 0.3,...
+                                    'swing_fall_frac', 0.3,...
+                                    'heel_support_frac', .1,... % fraction of swing time spent on heel support
                                     'drake_min_hold_time', 1.0,... % minimum time in double support (s)
                                     'drake_instep_shift', 0.0275,... % Distance to shift ZMP trajectory inward toward the instep from the center of the foot (m)
                                     'mu', 1.0,... % friction coefficient
