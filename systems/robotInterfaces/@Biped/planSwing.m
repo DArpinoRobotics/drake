@@ -9,7 +9,12 @@ params = applyDefaults(params, biped.default_walking_params);
 DEBUG = true;
 ASCENT_ANGLE = pi/3;
 DESCENT_ANGLE = -pi/3;
+% terrain = biped.getTerrain();
+% biped = biped.setTerrain([]);
+% biped = biped.compile();
 % v = biped.constructVisualizer();
+% biped = biped.setTerrain(terrain);
+% biped = biped.compile();
 
 % ignore_height = 0.5; % m, height above which we'll assume that our heightmap is giving us bad data (e.g. returns from an object the robot is carrying)
 
@@ -39,8 +44,13 @@ terrain_pts_in_local = [terrain_slice(1,:); zeros(1, size(terrain_slice, 2));
                         terrain_slice(2,:)];
 
 % Extend the terrain slice in the direction perpendicular to the swing
-% terrain_pts_in_local = [bsxfun(@plus, terrain_pts_in_local, [0;-1;0]), ...
-%                         bsxfun(@plus, terrain_pts_in_local, [0;1;0])];
+terrain_pts_in_local = [bsxfun(@plus, terrain_pts_in_local, [0;-1;0]), ...
+                        bsxfun(@plus, terrain_pts_in_local, [0;1;0])];
+                      
+% Extend the terrain slice down
+terrain_pts_in_local = [terrain_pts_in_local, ...
+                        bsxfun(@plus, terrain_pts_in_local, [0;0;-1])];
+
 
 % Transform to world coordinates
 T_local_to_world = [[rotmat(atan2(swing2.pos(2) - swing1.pos(2), swing2.pos(1) - swing1.pos(1))), [0;0];
@@ -52,10 +62,10 @@ terrain_pts_in_world = terrain_pts_in_world(1:3,:);
 terrain_hull_distance = [0, cumsum(sqrt(sum(diff(terrain_pts_in_world, 1, 2).^2)))];
 
 % Create terrain geometry.
-% terrain_geometry = RigidBodyMeshPoints(terrain_pts_in_world);
-% terrain_geometry.serializeToLCM();
-% biped = biped.addShapeToBody('world',terrain_geometry);
-% biped = biped.compile();
+terrain_geometry = RigidBodyMeshPoints(terrain_pts_in_world);
+terrain_geometry.serializeToLCM();
+biped = biped.addShapeToBody('world',terrain_geometry);
+biped = biped.compile();
 
 % Setup timing
 n_t_samples = 9;
@@ -64,7 +74,7 @@ t_swing_rise_end = t_toe_lift + params.swing_rise_frac;
 t_heel_land = params.toe_support_frac + 1;
 t_swing_fall_begin = t_heel_land - params.swing_fall_frac;
 t_final = 1+params.toe_support_frac+params.heel_support_frac;
-t = [0;t_toe_lift; t_heel_land; t_final;linspace(0,t_final,10)'];
+t = [0; t_toe_lift; t_swing_fall_begin; t_heel_land; t_final;linspace(0,t_final,10)'];
 t = unique(t);
 t_samples = setdiff(linspace(0,t_final,n_t_samples),t);
 
@@ -134,18 +144,11 @@ swing2_toe_constraint = WorldPositionConstraint(biped,swing_body_index, ...
 
 % Create collision avoidance constraint
 % Only consider swing foot and world
-% active_collision_options.body_idx = [1,swing_body_index];
-% step_height_constraint = MinDistanceConstraint(biped, params.step_height, ...
-%                             active_collision_options, ...
-%                             [t_swing_rise_end,t_swing_fall_begin]);
+active_collision_options.body_idx = [1,swing_body_index];
+step_height_constraint = MinDistanceConstraint(biped, params.step_height, ...
+                            active_collision_options, ...
+                            [t_swing_rise_end,t_swing_fall_begin]);
 
-% swing1_plane_constraint = WorldPositionInFrameConstraint(biped,swing1.frame_id,...
-%                            [0;0;0], T_swing1_sole_to_world, ...
-%                            [NaN; NaN; -0.005], [NaN; NaN; NaN],...
-%                            [0, );
-% swing2_plane_constraint = WorldPositionInFrameConstraint(biped,swing2.frame_id,...
-%                            [0;0;0], T_swing2_sole_to_world, [NaN; NaN; -0.005], [NaN; NaN; NaN]);
-% swing_plane_constraints = {swing1_plane_constraint, swing2_plane_constraint
 
 swing_hat = (swing2.pos(1:2) - swing1.pos(1:2)) / norm(swing2.pos(1:2) - swing1.pos(1:2));
 collision_plane_info = struct('tspan', {}, 'T', {}, 'distance', {});
@@ -180,25 +183,25 @@ collision_plane_info(end).distance = -0.005;
 % collision_plane_info(end).T = T1 * T2 * T3;
 % collision_plane_info(end).distance = -sqrt(sum(diff(swing2_heel_points_in_world, 1, 2).^2, 1))/2 - 0.005;
 
-normalized_terrain_hull_t = t_toe_lift + (terrain_hull_distance / terrain_hull_distance(end));
-for j = 1:(length(normalized_terrain_hull_t)-1)
-  tspan = normalized_terrain_hull_t(j:j+1);
-  tspan(1) = max(tspan(1), t_swing_rise_end);
-  tspan(2) = min(tspan(2), t_swing_fall_begin);
-  if tspan(2) <= tspan(1)
-    continue;
-  end
-  th1 = atan2(swing_hat(2), swing_hat(1));
-  th2 = atan2(terrain_pts_in_world(3,j+1)-terrain_pts_in_world(3,j),...
-              swing_hat' * (terrain_pts_in_world(1:2,j+1) - terrain_pts_in_world(1:2,j)));
-  T1 = [eye(3), terrain_pts_in_world(1:3,j); 0,0,0,1];
-  T2 = [rpy2rotmat([0,0,th1]), [0;0;0]; 0,0,0,1];
-  T3 = [rpy2rotmat([0,-th2,0]), [0;0;0]; 0,0,0,1];
-  T = T1 * T2 * T3;
-  collision_plane_info(end+1).tspan = tspan;
-  collision_plane_info(end).T = T;
-  collision_plane_info(end).distance = params.step_height;
-end
+% normalized_terrain_hull_t = t_toe_lift + (terrain_hull_distance / terrain_hull_distance(end));
+% for j = 1:(length(normalized_terrain_hull_t)-1)
+%   tspan = normalized_terrain_hull_t(j:j+1);
+%   tspan(1) = max(tspan(1), t_swing_rise_end);
+%   tspan(2) = min(tspan(2), t_swing_fall_begin);
+%   if tspan(2) <= tspan(1)
+%     continue;
+%   end
+%   th1 = atan2(swing_hat(2), swing_hat(1));
+%   th2 = atan2(terrain_pts_in_world(3,j+1)-terrain_pts_in_world(3,j),...
+%               swing_hat' * (terrain_pts_in_world(1:2,j+1) - terrain_pts_in_world(1:2,j)));
+%   T1 = [eye(3), terrain_pts_in_world(1:3,j); 0,0,0,1];
+%   T2 = [rpy2rotmat([0,0,th1]), [0;0;0]; 0,0,0,1];
+%   T3 = [rpy2rotmat([0,-th2,0]), [0;0;0]; 0,0,0,1];
+%   T = T1 * T2 * T3;
+%   collision_plane_info(end+1).tspan = tspan;
+%   collision_plane_info(end).T = T;
+%   collision_plane_info(end).distance = params.step_height;
+% end
 
 lcmgl = drake.util.BotLCMGLClient(lcm.lcm.LCM.getSingleton(),'plane_transform');
 for j = 1:length(collision_plane_info)
@@ -227,9 +230,9 @@ swing_lateral_constraint = ...
   
 forward_progress_constraints = { ...
   WorldPositionInFrameConstraint(biped,swing1.frame_id, ...
-    [0;0;0], T_local_to_world, [NaN; NaN; NaN], [0.3*xy_dist; NaN; NaN], [0, t_toe_lift + 1/3]),...
+    [0;0;0], T_local_to_world, [-0.1*xy_dist; NaN; NaN], [0.3*xy_dist; NaN; NaN], [0, t_toe_lift + 1/3]),...
   WorldPositionInFrameConstraint(biped,swing1.frame_id, ...
-    [0;0;0], T_local_to_world, [0.9*xy_dist; NaN; NaN], [NaN; NaN; NaN], [t_heel_land - 0.5, t_final]),...
+    [0;0;0], T_local_to_world, [0.9*xy_dist; NaN; NaN], [1.1*xy_dist; NaN; NaN], [t_heel_land - 0.5, t_final]),...
     };
                 
 constraints = { ...
@@ -242,6 +245,7 @@ constraints = { ...
   swing2_toe_constraint, ...
   swing_lateral_constraint, ...
   swing_plane_constraints{:},...
+  step_height_constraint,...
   forward_progress_constraints{:},...
 };
 % WorldPositionConstraint(biped, swing_body_index, active_collision_pts, repmat([NaN, NaN, 0.06]',1,4), repmat([NaN, NaN, NaN]',1,4), [t_swing_rise_end, t_swing_fall_begin]),... 
@@ -263,6 +267,12 @@ ikoptions = ikoptions.setIterationsLimit(1e6);
                               constraints{:},ikoptions);
 info
 % v.draw(0, xstar);
+
+joint_names = biped.getStateFrame.coordinates(1:biped.getNumPositions());
+joint_names = regexprep(joint_names, 'pelvis', 'base', 'preservecase'); % change 'pelvis' to 'base'
+walking_plan = WalkingPlan(xtraj.getBreaks(), xtraj, joint_names);
+lc = lcm.lcm.LCM.getSingleton();
+lc.publish('WALKING_TRAJ_RESPONSE', walking_plan.toLCM());
 
 % v.playback(xtraj, struct('slider', true));
 % keyboard();
