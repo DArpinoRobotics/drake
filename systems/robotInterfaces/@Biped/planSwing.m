@@ -7,8 +7,8 @@ params = struct(swing2.walking_params);
 params = applyDefaults(params, biped.default_walking_params);
 
 DEBUG = true;
-ASCENT_ANGLE = pi/4;
-DESCENT_ANGLE = -pi/4;
+ASCENT_ANGLE = pi/3;
+DESCENT_ANGLE = -pi/3;
 % v = biped.constructVisualizer();
 
 % ignore_height = 0.5; % m, height above which we'll assume that our heightmap is giving us bad data (e.g. returns from an object the robot is carrying)
@@ -150,12 +150,12 @@ swing2_toe_constraint = WorldPositionConstraint(biped,swing_body_index, ...
 swing_hat = (swing2.pos(1:2) - swing1.pos(1:2)) / norm(swing2.pos(1:2) - swing1.pos(1:2));
 collision_plane_info = struct('tspan', {}, 'T', {}, 'distance', {});
 
-% Keep the foot above its initial plane
+% % Keep the foot above its initial plane
 collision_plane_info(end+1).tspan = [0, t_swing_rise_end];
 collision_plane_info(end).T = T_swing1_sole_to_world;
 collision_plane_info(end).distance = -0.005;
-
-% Keep the foot within its ascent slope
+% 
+% % Keep the foot within its ascent slope
 % th1 = atan2(swing_hat(2), swing_hat(1));
 % th2 = ASCENT_ANGLE;
 % T1 = [eye(3), mean(swing1_toe_points_in_world(1:3,:), 2); 0,0,0,1];
@@ -164,21 +164,21 @@ collision_plane_info(end).distance = -0.005;
 % collision_plane_info(end+1).tspan = [0, t_swing_rise_end];
 % collision_plane_info(end).T = T1 * T2 * T3;
 % collision_plane_info(end).distance = -sqrt(sum(diff(swing1_toe_points_in_world, 1, 2).^2, 1))/2 - 0.005;
-
-% Keep the foot above its final plane
+% 
+% % Keep the foot above its final plane
 collision_plane_info(end+1).tspan = [t_swing_fall_begin, t_final];
 collision_plane_info(end).T = T_swing2_sole_to_world;
 collision_plane_info(end).distance = -0.005;
-
+% 
 % Keep the foot within its descent slope
-th1 = atan2(swing_hat(2), swing_hat(1));
-th2 = DESCENT_ANGLE;
-T1 = [eye(3), mean(swing2_heel_points_in_world(1:3,:), 2); 0,0,0,1];
-T2 = [rpy2rotmat([0,0,th1]), [0;0;0]; 0,0,0,1];
-T3 = [rpy2rotmat([0,-th2,0]), [0;0;0]; 0,0,0,1];
-collision_plane_info(end+1).tspan = [t_swing_fall_begin, t_final];
-collision_plane_info(end).T = T1 * T2 * T3;
-collision_plane_info(end).distance = -sqrt(sum(diff(swing2_heel_points_in_world, 1, 2).^2, 1))/2 - 0.005;
+% th1 = atan2(swing_hat(2), swing_hat(1));
+% th2 = DESCENT_ANGLE;
+% T1 = [eye(3), mean(swing2_heel_points_in_world(1:3,:), 2); 0,0,0,1];
+% T2 = [rpy2rotmat([0,0,th1]), [0;0;0]; 0,0,0,1];
+% T3 = [rpy2rotmat([0,-th2,0]), [0;0;0]; 0,0,0,1];
+% collision_plane_info(end+1).tspan = [t_swing_fall_begin, t_final];
+% collision_plane_info(end).T = T1 * T2 * T3;
+% collision_plane_info(end).distance = -sqrt(sum(diff(swing2_heel_points_in_world, 1, 2).^2, 1))/2 - 0.005;
 
 normalized_terrain_hull_t = t_toe_lift + (terrain_hull_distance / terrain_hull_distance(end));
 for j = 1:(length(normalized_terrain_hull_t)-1)
@@ -224,6 +224,13 @@ lateral_tol = 1e-2; % Distance the sole can move to away from the line
 swing_lateral_constraint = ...
   WorldPositionInFrameConstraint(biped,swing1.frame_id, ...
     [0;0;0], T_local_to_world, [NaN;-lateral_tol;NaN], [NaN;lateral_tol;NaN]);
+  
+forward_progress_constraints = { ...
+  WorldPositionInFrameConstraint(biped,swing1.frame_id, ...
+    [0;0;0], T_local_to_world, [NaN; NaN; NaN], [0.3*xy_dist; NaN; NaN], [0, t_toe_lift + 1/3]),...
+  WorldPositionInFrameConstraint(biped,swing1.frame_id, ...
+    [0;0;0], T_local_to_world, [0.9*xy_dist; NaN; NaN], [NaN; NaN; NaN], [t_heel_land - 0.5, t_final]),...
+    };
                 
 constraints = { ...
   upper_body_posture_constraint,...
@@ -235,7 +242,9 @@ constraints = { ...
   swing2_toe_constraint, ...
   swing_lateral_constraint, ...
   swing_plane_constraints{:},...
+  forward_progress_constraints{:},...
 };
+% WorldPositionConstraint(biped, swing_body_index, active_collision_pts, repmat([NaN, NaN, 0.06]',1,4), repmat([NaN, NaN, NaN]',1,4), [t_swing_rise_end, t_swing_fall_begin]),... 
 
 q_nom_traj = ConstantTrajectory(xstar(1:biped.getNumPositions()));
 
