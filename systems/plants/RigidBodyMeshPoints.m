@@ -20,7 +20,25 @@ classdef RigidBodyMeshPoints < RigidBodyMesh
     end
     
     function msg = serializeToLCM(obj)
-      error('not implemented yet');
+      lcmgl = drake.util.BotLCMGLClient(lcm.lcm.LCM.getSingleton(), 'terrain points');
+      color = [1, .3, .3];
+      lcmgl.glColor3f(color(1), color(2), color(3));
+      for j = 1:size(obj.points, 2)
+        lcmgl.sphere(obj.points(:,j), 0.01, 20, 20);
+      end
+      lcmgl.switchBuffers();
+
+      % msg = drake.lcmt_viewer_geometry_data();
+      % msg.type = msg.BOX;
+      % msg.string_data = '';
+      % msg.num_float_data = 3;
+      % msg.float_data = [0,0,0];
+      
+      % msg.position = [0;0;0];
+      % msg.quaternion = rotmat2quat(eye(3));
+      % msg.color = [0,0,0,0];
+      msg = [];
+      % error('not implemented yet');
     end
   end
   
