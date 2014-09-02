@@ -80,10 +80,13 @@ while 1
   st = steps.(st_foot)(istep.(st_foot));
 
   if is_first_step
-    sw1.walking_params.drake_min_hold_time = options.first_step_hold_s;
+    initial_hold = options.first_step_hold_s;
+%     sw1.walking_params.drake_min_hold_time = options.first_step_hold_s;
     is_first_step = false;
+  else
+    initial_hold = 0;
   end
-  [new_foot_knots, new_zmp_knots] = planSwing(biped, st, sw0, sw1);
+  [new_foot_knots, new_zmp_knots] = planSwing(biped, st, sw0, sw1, initial_hold);
   t0 = foot_origin_knots(end).t;
   for k = 1:length(new_foot_knots)
     new_foot_knots(k).t = new_foot_knots(k).t + t0;
@@ -120,9 +123,12 @@ for f = {'right', 'left'}
     % Unwrap rpy angles
     foot_poses(j,2:end) = foot_poses(j,1:end-1) + angleDiff(foot_poses(j,1:end-1), foot_poses(j,2:end));
   end
-  foot_traj = PPTrajectory(spline([foot_origin_knots.t], foot_poses));
+  zpoints = foot_poses(3,:);
+  change_indices = [true, diff(diff(zpoints)) ~= 0, true];
+  ts = [foot_origin_knots.t];
+  foot_traj = PPTrajectory(pchip(ts(change_indices), foot_poses(:,change_indices)));
   dtraj = fnder(foot_traj);
-  ddtraj = fnder(dtraj);
+  ddtraj = fnder(foot_traj,2);
   link_constraints(end+1) = struct('link_ndx', body_ind, 'pt', [0;0;0], 'traj', foot_traj, 'dtraj', dtraj, 'ddtraj', ddtraj);
 end
 zmptraj = PPTrajectory(foh([zmp_knots.t], [zmp_knots.zmp]));
