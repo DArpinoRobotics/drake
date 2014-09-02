@@ -1,5 +1,8 @@
-function [foot_origin_knots, zmp_knots] = planSwing(biped, stance, swing1, swing2)
+function [foot_origin_knots, zmp_knots] = planSwing(biped, stance, swing1, swing2, initial_hold_time)
 % Compute a collision-free swing trajectory for a single foot.
+if nargin < 5
+  initial_hold_time = 0;
+end
 
 assert(swing1.frame_id == swing2.frame_id, 'planSwing expects to plan a swing trajectory between two positions of the /same/ foot body')
 
@@ -268,18 +271,21 @@ ikoptions = ikoptions.setIterationsLimit(1e6);
 info
 % v.draw(0, xstar);
 
-joint_names = biped.getStateFrame.coordinates(1:biped.getNumPositions());
-joint_names = regexprep(joint_names, 'pelvis', 'base', 'preservecase'); % change 'pelvis' to 'base'
-walking_plan = WalkingPlan(xtraj.getBreaks(), xtraj, joint_names);
-lc = lcm.lcm.LCM.getSingleton();
-lc.publish('WALKING_TRAJ_RESPONSE', walking_plan.toLCM());
-
+if DEBUG
+    joint_names = biped.getStateFrame.coordinates(1:biped.getNumPositions());
+    joint_names = regexprep(joint_names, 'pelvis', 'base', 'preservecase'); % change 'pelvis' to 'base'
+    walking_plan = WalkingPlan(xtraj.getBreaks(), xtraj, joint_names);
+    lc = lcm.lcm.LCM.getSingleton();
+    lc.publish('WALKING_TRAJ_RESPONSE', walking_plan.toLCM());
+end
+    
 % v.playback(xtraj, struct('slider', true));
 % keyboard();
 
-num_swing_samples = 10;
+num_swing_samples = 50;
 foot_origin_knots = struct('t', {}, 'right', {}, 'left', {});
-sample_times = [0, linspace(params.toe_support_frac, 1 + params.toe_support_frac, num_swing_samples), 1 + (params.toe_support_frac + params.heel_support_frac)];
+% sample_times = [0, linspace(params.toe_support_frac, 1 + params.toe_support_frac, num_swing_samples), 1 + (params.toe_support_frac + params.heel_support_frac)];
+sample_times = linspace(0, 1 + (params.toe_support_frac + params.heel_support_frac), num_swing_samples);
 cart_dist = 0;
 yaw_dist = 0;
 
@@ -308,13 +314,13 @@ swing_time = max(cart_dist / params.step_speed, yaw_dist / foot_yaw_rate);
 hold_time = max(swing_time * params.hold_frac, params.drake_min_hold_time);
 
 for j = 1:length(foot_origin_knots)
-  foot_origin_knots(j).t = foot_origin_knots(j).t * swing_time + 0.5 * hold_time;
+  foot_origin_knots(j).t = foot_origin_knots(j).t * swing_time + 0.5 * hold_time + initial_hold_time;
 end
 
 foot_origin_knots = [foot_origin_knots, foot_origin_knots(end)];
 foot_origin_knots(end).t = foot_origin_knots(end-1).t + 0.5 * hold_time;
 
-heel_lift_time = 0.5 * hold_time;
+heel_lift_time = 0.5 * hold_time + initial_hold_time;
 toe_lift_time = heel_lift_time + params.toe_support_frac * swing_time;
 heel_land_time = toe_lift_time + swing_time;
 toe_land_time = heel_land_time + params.heel_support_frac * swing_time;
