@@ -9,7 +9,7 @@ assert(swing1.frame_id == swing2.frame_id, 'planSwing expects to plan a swing tr
 params = struct(swing2.walking_params);
 params = applyDefaults(params, biped.default_walking_params);
 
-DEBUG = true;
+DEBUG = false;
 % ASCENT_ANGLE = pi/3;
 % DESCENT_ANGLE = -pi/3;
 % terrain = biped.getTerrain();
@@ -207,10 +207,7 @@ collision_plane_info(end).distance = -0.005;
 % end
 
 lcmgl = drake.util.BotLCMGLClient(lcm.lcm.LCM.getSingleton(),'plane_transform');
-for j = 1:length(collision_plane_info)
-  T = collision_plane_info(j).T;
-  lcmglDrawHT(lcmgl, T);
-end
+
 
 lcmgl.switchBuffers();
 
@@ -274,6 +271,10 @@ info
 % v.draw(0, xstar);
 
 if DEBUG
+    for j = 1:length(collision_plane_info)
+      T = collision_plane_info(j).T;
+      lcmglDrawHT(lcmgl, T);
+    end
     joint_names = biped.getStateFrame.coordinates(1:biped.getNumPositions());
     joint_names = regexprep(joint_names, 'pelvis', 'base', 'preservecase'); % change 'pelvis' to 'base'
     walking_plan = WalkingPlan(xtraj.getBreaks(), xtraj, joint_names);
