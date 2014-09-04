@@ -235,6 +235,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxArray* mxContactSurfaces = myGetField(prhs[desired_support_argid],"contact_surfaces");
     if (!mxContactSurfaces) mexErrMsgTxt("couldn't get contact surfaces");
     double* pContactSurfaces = mxGetPr(mxContactSurfaces);
+    mxArray* mxPartialContact = myGetField(prhs[desired_support_argid],"partial_contact");
+    if (!mxPartialContact) mexErrMsgTxt("couldn't get partial contact array");
+    double* pPartialContact = mxGetPr(mxPartialContact);
     
     for (i=0; i<mxGetNumberOfElements(mxBodies);i++) {
       mxArray* mxBodyContactPts = mxGetCell(mxContactPts,i);
@@ -248,6 +251,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         se.contact_pt_inds.insert((int)pr[j]-1);
       }
       se.contact_surface = (int) pContactSurfaces[i]-1;
+      se.partial_contact = (int) pPartialContact[i]-1;
       
       active_supports.push_back(se);
       num_active_contact_pts += nc;
@@ -522,7 +526,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         body_vdot = body_accel_inputs[i].bottomRows(6);
         body_idx = (int)(body_accel_inputs[i][0])-1;
         
-        //if (!inSupport(active_supports,body_idx)) {
+        if (!inSupport(active_supports,body_idx) || inPartialContact(active_supports,body_idx)) {
           pdata->r->forwardJac(body_idx,orig,1,Jb);
           pdata->r->forwardJacDot(body_idx,orig,1,Jbdot);
 
@@ -532,7 +536,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               f.head(nq) += w_i*(qdvec.transpose()*Jbdot.row(j).transpose() - body_vdot[j])*Jb.row(j).transpose();
             }
           }
-        //}
+        }
       }
     }
 
