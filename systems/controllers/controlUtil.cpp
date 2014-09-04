@@ -73,6 +73,14 @@ bool inSupport(std::vector<SupportStateElement> supports, int body_idx) {
   return false;
 }
 
+bool inPartialContact(std::vector<SupportStateElement> supports, int body_idx) {
+  for (int i=0; i<supports.size(); i++) {
+    if (supports[i].body_idx == body_idx && supports[i].partial_contact)
+      return true;
+  }
+  return false;
+}
+
 void collisionDetect(void* map_ptr, Vector3d const & contact_pos, Vector3d &pos, Vector3d *normal, double terrain_height)
 {
   if (map_ptr) {

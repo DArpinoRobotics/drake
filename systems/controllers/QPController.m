@@ -279,6 +279,7 @@ classdef QPController < MIMODrakeSystem
     contact_pts = {};
     contact_groups = {};
     n_contact_pts = [];
+    partial_contact = []; % bool array, true if only some contact groups are active
     ind = 1;
     
     supp_idx = find(ctrl_data.support_times<=t,1,'last');
@@ -291,6 +292,7 @@ classdef QPController < MIMODrakeSystem
       contact_pts{ind} = plan_supp.contact_pts{lfoot_plan_supp_ind};
       contact_groups{ind} = plan_supp.contact_groups{lfoot_plan_supp_ind};
       n_contact_pts(ind) = plan_supp.num_contact_pts(lfoot_plan_supp_ind);
+      partial_contact(ind) = length(contact_groups{ind})<length(r.getBody(support_bodies(ind)).collision_group_name);
       ind=ind+1;
     end
     if fc(2)>0
@@ -298,6 +300,7 @@ classdef QPController < MIMODrakeSystem
       contact_pts{ind} = plan_supp.contact_pts{rfoot_plan_supp_ind};
       contact_groups{ind} = plan_supp.contact_groups{rfoot_plan_supp_ind};
       n_contact_pts(ind) = plan_supp.num_contact_pts(rfoot_plan_supp_ind);
+      partial_contact(ind) = length(contact_groups{ind})<length(r.getBody(support_bodies(ind)).collision_group_name);
     end
     
     supp.bodies = support_bodies;
@@ -305,6 +308,7 @@ classdef QPController < MIMODrakeSystem
     supp.contact_groups = contact_groups;
     supp.num_contact_pts = n_contact_pts;
     supp.contact_surfaces = 0*support_bodies;
+    supp.partial_contact = partial_contact;
     
     if (obj.use_mex==0 || obj.use_mex==2)
       kinsol = doKinematics(r,q,false,true,qd);
@@ -504,13 +508,13 @@ classdef QPController < MIMODrakeSystem
           body_input = varargin{ii+3};
           body_ind = body_input(1);
           body_vdot = body_input(2:7);
-          %if ~any(active_supports==body_ind)
+          if ~any(active_supports==body_ind) || supp.partial_contact(active_supports==body_ind)
             [~,J] = forwardKin(r,kinsol,body_ind,[0;0;0],1);
             Jdot = forwardJacDot(r,kinsol,body_ind,[0;0;0],1);
             cidx = ~isnan(body_vdot);
             Hqp(1:nq,1:nq) = Hqp(1:nq,1:nq) + w*J(cidx,:)'*J(cidx,:);
             fqp = fqp + w*(qd'*Jdot(cidx,:)'- body_vdot(cidx)')*J(cidx,:)*Iqdd;
-          %end
+          end
         end
       end
       

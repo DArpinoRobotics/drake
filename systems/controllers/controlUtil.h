@@ -24,6 +24,7 @@ typedef struct _support_state_element
   int body_idx;
   std::set<int> contact_pt_inds;
   int contact_surface;
+  int partial_contact; // 1 if not all contact groups are active
 } SupportStateElement;
 
 template <typename DerivedA, typename DerivedB>
@@ -41,6 +42,7 @@ mxArray* eigenToMatlab(Matrix<double,Rows,Cols> &m);
 mxArray* myGetProperty(const mxArray* pobj, const char* propname);
 mxArray* myGetField(const mxArray* pobj, const char* propname);
 bool inSupport(std::vector<SupportStateElement> supports, int body_idx);
+bool inPartialContact(std::vector<SupportStateElement> supports, int body_idx);
 void collisionDetect(void* map_ptr, Vector3d const & contact_pos, Vector3d &pos, Vector3d *normal, double terrain_height);
 void surfaceTangents(const Vector3d & normal, Matrix<double,3,m_surface_tangents> & d);
 int contactPhi(RigidBodyManipulator* r, SupportStateElement& supp, void *map_ptr, VectorXd &phi, double terrain_height);
