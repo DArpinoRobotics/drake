@@ -194,7 +194,7 @@ function update_foot_knots(constraints)
   end
 end
 
-ws = linspace(0, w_toe_lift, 10);
+ws = linspace(0, w_toe_lift, 5);
 for j = 1:length(ws)
   w = ws(j);
   quat_des = slerp(quat_swing1, quat_toe_off, w / w_toe_lift);
