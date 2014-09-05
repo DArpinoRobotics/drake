@@ -292,7 +292,7 @@ classdef QPController < MIMODrakeSystem
       contact_pts{ind} = plan_supp.contact_pts{lfoot_plan_supp_ind};
       contact_groups{ind} = plan_supp.contact_groups{lfoot_plan_supp_ind};
       n_contact_pts(ind) = plan_supp.num_contact_pts(lfoot_plan_supp_ind);
-      partial_contact(ind) = length(contact_groups{ind})<length(r.getBody(support_bodies(ind)).collision_group_name);
+      partial_contact(ind) = 1*(length(contact_groups{ind})<length(r.getBody(support_bodies(ind)).collision_group_name));
       ind=ind+1;
     end
     if fc(2)>0
@@ -300,7 +300,7 @@ classdef QPController < MIMODrakeSystem
       contact_pts{ind} = plan_supp.contact_pts{rfoot_plan_supp_ind};
       contact_groups{ind} = plan_supp.contact_groups{rfoot_plan_supp_ind};
       n_contact_pts(ind) = plan_supp.num_contact_pts(rfoot_plan_supp_ind);
-      partial_contact(ind) = length(contact_groups{ind})<length(r.getBody(support_bodies(ind)).collision_group_name);
+      partial_contact(ind) = 1*(length(contact_groups{ind})<length(r.getBody(support_bodies(ind)).collision_group_name));
     end
     
     supp.bodies = support_bodies;

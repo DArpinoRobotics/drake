@@ -75,7 +75,7 @@ bool inSupport(std::vector<SupportStateElement> supports, int body_idx) {
 
 bool inPartialContact(std::vector<SupportStateElement> supports, int body_idx) {
   for (int i=0; i<supports.size(); i++) {
-    if (supports[i].body_idx == body_idx && supports[i].partial_contact)
+    if (supports[i].body_idx == body_idx && supports[i].partial_contact==1)
       return true;
   }
   return false;
