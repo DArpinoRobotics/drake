@@ -9,7 +9,7 @@ assert(swing1.frame_id == swing2.frame_id, 'planSwing expects to plan a swing tr
 params = struct(swing2.walking_params);
 params = applyDefaults(params, biped.default_walking_params);
 
-DEBUG = true;
+DEBUG = false;
 TOE_OFF_ANGLE = pi/8;
 
 % ignore_height = 0.5; % m, height above which we'll assume that our heightmap is giving us bad data (e.g. returns from an object the robot is carrying)
