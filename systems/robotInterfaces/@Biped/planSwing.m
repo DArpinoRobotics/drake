@@ -62,7 +62,7 @@ T_local_to_world = [[rotmat(atan2(swing2.pos(2) - swing1.pos(2), swing2.pos(1) -
 terrain_pts_in_world = T_local_to_world * [terrain_pts_in_local; ones(1, size(terrain_pts_in_local, 2))];
 terrain_pts_in_world = terrain_pts_in_world(1:3,:);
 
-terrain_hull_distance = [0, cumsum(sqrt(sum(diff(terrain_pts_in_world, 1, 2).^2)))];
+% terrain_hull_distance = [0, cumsum(sqrt(sum(diff(terrain_pts_in_world, 1, 2).^2)))];
 
 % Create terrain geometry.
 terrain_geometry = RigidBodyMeshPoints(terrain_pts_in_world);
@@ -153,7 +153,7 @@ step_height_constraint = MinDistanceConstraint(biped, params.step_height, ...
                             [t_swing_rise_end,t_swing_fall_begin]);
 
 
-swing_hat = (swing2.pos(1:2) - swing1.pos(1:2)) / norm(swing2.pos(1:2) - swing1.pos(1:2));
+% swing_hat = (swing2.pos(1:2) - swing1.pos(1:2)) / norm(swing2.pos(1:2) - swing1.pos(1:2));
 collision_plane_info = struct('tspan', {}, 'T', {}, 'distance', {});
 
 % % Keep the foot above its initial plane

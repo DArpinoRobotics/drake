@@ -86,7 +86,7 @@ while 1
   else
     initial_hold = 0;
   end
-  [new_foot_knots, new_zmp_knots] = planSwing(biped, st, sw0, sw1, initial_hold);
+  [new_foot_knots, new_zmp_knots] = planSwingSimple(biped, st, sw0, sw1, initial_hold);
   t0 = foot_origin_knots(end).t;
   for k = 1:length(new_foot_knots)
     new_foot_knots(k).t = new_foot_knots(k).t + t0;
