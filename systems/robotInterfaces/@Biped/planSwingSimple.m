@@ -108,12 +108,20 @@ swing2_toe_constraint = WorldPositionConstraint(biped,swing_body_index, ...
                           swing2_toe_points_in_world, ...
                           swing2_toe_points_in_world);
 
+
+toe1 = mean(swing1_toe_points_in_world, 2);
+toe2= mean(swing2_toe_points_in_world, 2);
+T_toetoe_to_world = [[rotmat(atan2(toe2(2) - toe1(2), toe2(1) - toe1(1))), [0;0];
+                     0, 0, 1], toe1(1:3); 
+                    0, 0, 0, 1];
+
 % Create lateral constraint on swing foot
-lateral_tol = 1e-2; % Distance the sole can move to away from the line 
+lateral_tol = 1e-6; % Distance the sole can move to away from the line 
                     % between step1 and step
 swing_lateral_constraint = ...
-  WorldPositionInFrameConstraint(biped,swing1.frame_id, ...
-    [0;0;0], T_local_to_world, [NaN;-lateral_tol;NaN], [NaN;lateral_tol;NaN]);
+  WorldPositionInFrameConstraint(biped,swing_body_index,...
+    mean(swing_toe_points_in_foot, 2), ...
+    T_toetoe_to_world, [NaN;-lateral_tol;NaN], [NaN;lateral_tol;NaN]);
 
 quat_swing1 = rpy2quat(swing1.pos(4:6));
 quat_toe_off = rotmat2quat(quat2rotmat(quat_swing1) * rpy2rotmat([0;TOE_OFF_ANGLE;0]));
@@ -139,7 +147,8 @@ if DEBUG
   v.draw(0, q_latest);
 end
 
-basic_constraints = {posture_constraint, swing_lateral_constraint};
+% basic_constraints = {posture_constraint, swing_lateral_constraint};
+basic_constraints = {posture_constraint};
 
 quat_tol = 1e-6;
 
@@ -156,7 +165,7 @@ swing1_origin_pose = [swing1_origin(1:3,4); rotmat2rpy(swing1_origin(1:3,1:3))];
 swing_poses = [swing1_origin_pose];
 
 
-foot_origin_knots = struct('t', params.drake_min_hold_time + initial_hold_time, ...
+foot_origin_knots = struct('t', 0.5 * params.drake_min_hold_time + initial_hold_time, ...
                            swing_foot_name, swing1_origin_pose, ...
                            stance_foot_name, stance_origin_pose);
 
@@ -168,7 +177,8 @@ function update_foot_knots(constraints)
     constraint_ptrs{end+1} = constraints{k}.mex_ptr;
   end
   full_IK_calls = full_IK_calls + 1;
-  q_latest = inverseKin(biped,q_latest,q_latest,constraint_ptrs{:},ikoptions);
+  [q_latest, info] = inverseKin(biped,q_latest,q_latest,constraint_ptrs{:},ikoptions);
+  info
   if DEBUG
     v.draw(0, q_latest);
   end
@@ -209,9 +219,9 @@ for j = 1:length(ws)
   end
   max_terrain_ht = max(terrain_pts_in_local(3,i0:i1));
   toe_ht_in_local = max_terrain_ht + interp1([w_toe_lift, w_swing_rise_end], [0, params.step_height], w);
-  constraints = [basic_constraints,...
+  constraints = [basic_constraints, {swing_lateral_constraint}, ...
                  {WorldPositionInFrameConstraint(biped,swing_body_index,...
-                    mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); 0; toe_ht_in_local], [toe_pos_in_local(1); 0; toe_ht_in_local]),...
+                    mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); NaN; toe_ht_in_local], [toe_pos_in_local(1); NaN; toe_ht_in_local]),...
                  WorldQuatConstraint(biped,swing_body_index,quat_des,quat_tol)}]; 
   update_foot_knots(constraints);
 end
@@ -231,9 +241,9 @@ for j = 1:length(ws)
   end
   max_terrain_ht = max(terrain_pts_in_local(3,i0:i1));
   toe_ht_in_local = max_terrain_ht + params.step_height;
-  constraints = [basic_constraints,...
+  constraints = [basic_constraints, {swing_lateral_constraint}, ...
                  {WorldPositionInFrameConstraint(biped,swing_body_index,...
-                    mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); 0; toe_ht_in_local], [toe_pos_in_local(1); 0; toe_ht_in_local]),...
+                    mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); NaN; toe_ht_in_local], [toe_pos_in_local(1); NaN; toe_ht_in_local]),...
                  WorldQuatConstraint(biped,swing_body_index,quat_des,quat_tol)}]; 
   update_foot_knots(constraints);
 end
@@ -253,9 +263,9 @@ for j = 1:length(ws)
   end
   max_terrain_ht = max(terrain_pts_in_local(3,i0:i1));
   toe_ht_in_local = max_terrain_ht + interp1([w_swing_fall_begin, w_heel_land], [params.step_height, 0], w);
-  constraints = [basic_constraints,...
+  constraints = [basic_constraints, {swing_lateral_constraint}, ...
                  {WorldPositionInFrameConstraint(biped,swing_body_index,...
-                    mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); 0; toe_ht_in_local], [toe_pos_in_local(1); 0; toe_ht_in_local]),...
+                    mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); NaN; toe_ht_in_local], [toe_pos_in_local(1); NaN; toe_ht_in_local]),...
                  WorldQuatConstraint(biped,swing_body_index,quat_des,quat_tol)}]; 
   update_foot_knots(constraints);
 end
@@ -267,7 +277,7 @@ full_IK_calls
 foot_origin_knots = [foot_origin_knots, foot_origin_knots(end)];
 foot_origin_knots(end).t = foot_origin_knots(end-1).t + 0.5 * params.drake_min_hold_time;
 
-step_duration = heel_land_time + 0.5 * params.drake_min_hold_time;
+step_duration = foot_origin_knots(end).t;
 
 instep_shift = [0.0;stance.walking_params.drake_instep_shift;0];
 zmp1 = shift_step_inward(biped, stance, instep_shift);
@@ -278,7 +288,6 @@ zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp1, 'supp', RigidBodySup
 zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, stance_body_index));
 zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'heel', 'toe'}}));
 zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
-
 end
 
 function pos = shift_step_inward(biped, step, instep_shift)
