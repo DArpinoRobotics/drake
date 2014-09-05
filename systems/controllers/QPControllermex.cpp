@@ -251,7 +251,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         se.contact_pt_inds.insert((int)pr[j]-1);
       }
       se.contact_surface = (int) pContactSurfaces[i]-1;
-      se.partial_contact = (int) pPartialContact[i]-1;
+      se.partial_contact = (int) pPartialContact[i];
       
       active_supports.push_back(se);
       num_active_contact_pts += nc;
