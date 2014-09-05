@@ -126,6 +126,7 @@ for f = {'right', 'left'}
   zpoints = foot_poses(3,:);
   change_indices = [true, diff(diff(zpoints)) ~= 0, true];
   ts = [foot_origin_knots.t];
+%   change_indices = 1:length(ts);
   foot_traj = PPTrajectory(pchip(ts(change_indices), foot_poses(:,change_indices)));
   dtraj = fnder(foot_traj);
   ddtraj = fnder(foot_traj,2);
