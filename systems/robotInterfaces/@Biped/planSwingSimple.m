@@ -9,7 +9,7 @@ assert(swing1.frame_id == swing2.frame_id, 'planSwing expects to plan a swing tr
 params = struct(swing2.walking_params);
 params = applyDefaults(params, biped.default_walking_params);
 
-DEBUG = true;
+DEBUG = false;
 TOE_OFF_ANGLE = pi/8;
 
 % ignore_height = 0.5; % m, height above which we'll assume that our heightmap is giving us bad data (e.g. returns from an object the robot is carrying)
@@ -165,13 +165,16 @@ swing1_origin_pose = [swing1_origin(1:3,4); rotmat2rpy(swing1_origin(1:3,1:3))];
 swing_poses = [swing1_origin_pose];
 
 
-foot_origin_knots = struct('t', 0.5 * params.drake_min_hold_time + initial_hold_time, ...
+foot_origin_knots = struct('t', initial_hold_time + 0.25 * params.drake_min_hold_time, ...
                            swing_foot_name, swing1_origin_pose, ...
                            stance_foot_name, stance_origin_pose);
 
 heel_lift_time = foot_origin_knots(end).t;
 
-function update_foot_knots(constraints)
+function update_foot_knots(constraints, min_dt)
+  if nargin < 2
+    min_dt = 0;
+  end
   constraint_ptrs = {};
   for k = 1:length(constraints)
     constraint_ptrs{end+1} = constraints{k}.mex_ptr;
@@ -187,6 +190,7 @@ function update_foot_knots(constraints)
   cartesian_distance = norm(swing_poses(1:3,end) - swing_poses(1:3,end-1));
   yaw_distance = abs(swing_poses(6,end) - swing_poses(6,end-1));
   dt = max(cartesian_distance / params.step_speed, yaw_distance / foot_yaw_rate);
+  dt = max(dt, min_dt);
   if dt > 0
     foot_origin_knots(end+1).(swing_foot_name) = swing_poses(:,end);
     foot_origin_knots(end).(stance_foot_name) = stance_origin_pose;
@@ -194,13 +198,14 @@ function update_foot_knots(constraints)
   end
 end
 
-ws = linspace(0, w_toe_lift, 5);
+n_ws = 5;
+ws = linspace(0, w_toe_lift, n_ws);
 for j = 1:length(ws)
   w = ws(j);
   quat_des = slerp(quat_swing1, quat_toe_off, w / w_toe_lift);
   constraints = [basic_constraints, {WorldQuatConstraint(biped,swing_body_index,quat_des,quat_tol),...
                  swing1_toe_constraint}];
-  update_foot_knots(constraints);
+  update_foot_knots(constraints, 0.25 * params.drake_min_hold_time / n_ws);
 end
 toe_lift_time = foot_origin_knots(end).t;
 
@@ -262,7 +267,8 @@ for j = 1:length(ws)
     i1 = size(terrain_pts_in_local, 2);
   end
   max_terrain_ht = max(terrain_pts_in_local(3,i0:i1));
-  toe_ht_in_local = max_terrain_ht + interp1([w_swing_fall_begin, w_heel_land], [params.step_height, 0], w);
+  terrain_ht_above_goal = swing1.pos(3) + max_terrain_ht - mean(swing2_toe_points_in_world(3,:));
+  toe_ht_in_local = max_terrain_ht + interp1([w_swing_fall_begin, w_heel_land], [params.step_height, -terrain_ht_above_goal], w);
   constraints = [basic_constraints, {swing_lateral_constraint}, ...
                  {WorldPositionInFrameConstraint(biped,swing_body_index,...
                     mean(swing_toe_points_in_foot, 2), T_local_to_world, [toe_pos_in_local(1); NaN; toe_ht_in_local], [toe_pos_in_local(1); NaN; toe_ht_in_local]),...
@@ -280,11 +286,13 @@ foot_origin_knots(end).t = foot_origin_knots(end-1).t + 0.5 * params.drake_min_h
 step_duration = foot_origin_knots(end).t;
 
 instep_shift = [0.0;stance.walking_params.drake_instep_shift;0];
+zmp0 = mean([stance.pos(1:2), swing1.pos(1:2)], 2);
 zmp1 = shift_step_inward(biped, stance, instep_shift);
 zmp2 = mean([stance.pos(1:2), swing2.pos(1:2)], 2);
 
 zmp_knots = struct('t', {}, 'zmp', {}, 'supp', {});
-zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
+% zmp_knots(end+1) = struct('t', initial_hold_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
+zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
 zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, stance_body_index));
 zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'heel', 'toe'}}));
 zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
