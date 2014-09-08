@@ -286,17 +286,16 @@ foot_origin_knots(end).t = foot_origin_knots(end-1).t + 0.5 * params.drake_min_h
 step_duration = foot_origin_knots(end).t;
 
 instep_shift = [0.0;stance.walking_params.drake_instep_shift;0];
-zmp_double_1 = mean([stance.pos(1:2), swing1.pos(1:2)], 2);
-zmp_toe_support = mean([mean(swing1_toe_points_in_world(1:2,:),2), stance.pos(1:2)], 2);
-zmp_stance = shift_step_inward(biped, stance, instep_shift);
-zmp_double_2 = mean([stance.pos(1:2), swing2.pos(1:2)], 2);
+zmp0 = mean([stance.pos(1:2), swing1.pos(1:2)], 2);
+zmp1 = shift_step_inward(biped, stance, instep_shift);
+zmp2 = mean([stance.pos(1:2), swing2.pos(1:2)], 2);
 
 zmp_knots = struct('t', {}, 'zmp', {}, 'supp', {});
 % zmp_knots(end+1) = struct('t', initial_hold_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
-zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp_toe_support, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
-zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp_stance, 'supp', RigidBodySupportState(biped, stance_body_index));
-zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp_stance, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'heel', 'toe'}}));
-zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp_double_2, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
+zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
+zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, stance_body_index));
+zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'heel', 'toe'}}));
+zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
 end
 
 function pos = shift_step_inward(biped, step, instep_shift)
