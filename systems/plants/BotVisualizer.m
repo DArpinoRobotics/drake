@@ -33,10 +33,10 @@ classdef BotVisualizer < RigidBodyVisualizer
       end
       typecheck(manip,'RigidBodyManipulator');
       
-      if ~BotVisualizer.isSupportedTerrain(manip.terrain)
-        error('Drake:BotVisualizer:UnsupportedModel', ...
-          'This model has terrain that is not supported by BotVisualizer (yet)');
-      end
+      % if ~BotVisualizer.isSupportedTerrain(manip.terrain)
+      %   error('Drake:BotVisualizer:UnsupportedModel', ...
+      %     'This model has terrain that is not supported by BotVisualizer (yet)');
+      % end
 %      if numel(manip.urdf)~=1
 %        error('Drake:BotVisualizer:UnsupportedModel','I don''t actually support robots with multiple urdfs yet, but it will be easy enough');
 %      end
