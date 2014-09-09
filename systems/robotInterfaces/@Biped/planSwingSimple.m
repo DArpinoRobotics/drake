@@ -99,6 +99,13 @@ swing2_toe_points_in_world = T_swing2_foot_to_world * ...
 swing2_toe_points_in_local = T_local_to_world \ swing2_toe_points_in_world;
 swing2_toe_points_in_world = swing2_toe_points_in_world(1:3,:);
 
+stance_toe_points_in_foot = biped.getBody(stance_body_index).getTerrainContactPoints('toe');
+T_stance_sole_to_world = ...
+  [rpy2rotmat(stance.pos(4:6)),stance.pos(1:3); zeros(1, 3), 1];
+T_stance_foot_to_world = T_stance_sole_to_world/biped.getFrame(stance.frame_id).T;
+stance_toe_points_in_world = T_stance_foot_to_world(1:3,:) * ...
+  [stance_toe_points_in_foot; ones(1, size(stance_toe_points_in_foot, 2))];
+
 swing2_heel_constraint = WorldPositionConstraint(biped,swing_body_index, ...
                           swing_heel_points_in_foot, ...
                           swing2_heel_points_in_world, ...
@@ -181,7 +188,7 @@ function update_foot_knots(constraints, min_dt)
   end
   full_IK_calls = full_IK_calls + 1;
   [q_latest, info] = inverseKin(biped,q_latest,q_latest,constraint_ptrs{:},ikoptions);
-  info
+  % info
   if DEBUG
     v.draw(0, q_latest);
   end
@@ -287,15 +294,17 @@ step_duration = foot_origin_knots(end).t;
 
 instep_shift = [0.0;stance.walking_params.drake_instep_shift;0];
 zmp0 = mean([stance.pos(1:2), swing1.pos(1:2)], 2);
+zmp0_toe = mean([stance.pos(1:2), mean(swing1_toe_points_in_world(1:2,:), 2)], 2);
 zmp1 = shift_step_inward(biped, stance, instep_shift);
 zmp2 = mean([stance.pos(1:2), swing2.pos(1:2)], 2);
+zmp2_toe = mean([mean(stance_toe_points_in_world(1:2,:), 2), swing2.pos(1:2)], 2);
 
 zmp_knots = struct('t', {}, 'zmp', {}, 'supp', {});
 % zmp_knots(end+1) = struct('t', initial_hold_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
-zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
+zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp0_toe, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
 zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, stance_body_index));
 zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'heel', 'toe'}}));
-zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
+zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2_toe, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
 end
 
 function pos = shift_step_inward(biped, step, instep_shift)
