@@ -301,10 +301,10 @@ zmp2_toe = mean([mean(stance_toe_points_in_world(1:2,:), 2), swing2.pos(1:2)], 2
 
 zmp_knots = struct('t', {}, 'zmp', {}, 'supp', {});
 % zmp_knots(end+1) = struct('t', initial_hold_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
-zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp0_toe, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
+zmp_knots(end+1) = struct('t', heel_lift_time, 'zmp', zmp0, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'toe'}}));
 zmp_knots(end+1) = struct('t', toe_lift_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, stance_body_index));
 zmp_knots(end+1) = struct('t', heel_land_time, 'zmp', zmp1, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index], {{'heel', 'toe'}, {'heel', 'toe'}}));
-zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2_toe, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
+zmp_knots(end+1) = struct('t', step_duration, 'zmp', zmp2, 'supp', RigidBodySupportState(biped, [stance_body_index, swing_body_index]));
 end
 
 function pos = shift_step_inward(biped, step, instep_shift)
