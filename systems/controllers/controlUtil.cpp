@@ -126,7 +126,7 @@ void surfaceTangents(const Vector3d & normal, Matrix<double,3,m_surface_tangents
 
 int contactPhi(RigidBodyManipulator* r, SupportStateElement& supp, void *map_ptr, VectorXd &phi, double terrain_height)
 {
-  RigidBody* b = &(r->bodies[supp.body_idx]);
+  std::unique_ptr<RigidBody>& b = r->bodies[supp.body_idx];
   int nc = supp.contact_pt_inds.size();
   phi.resize(nc);
 
@@ -166,7 +166,7 @@ int contactConstraints(RigidBodyManipulator *r, int nc, std::vector<SupportState
   Matrix<double,3,m_surface_tangents> d;
   
   for (std::vector<SupportStateElement>::iterator iter = supp.begin(); iter!=supp.end(); iter++) {
-    RigidBody* b = &(r->bodies[iter->body_idx]);
+    std::unique_ptr<RigidBody>& b = r->bodies[iter->body_idx];
     if (nc>0) {
       for (std::set<int>::iterator pt_iter=iter->contact_pt_inds.begin(); pt_iter!=iter->contact_pt_inds.end(); pt_iter++) {
         if (*pt_iter<0 || *pt_iter>=b->contact_pts.cols()) mexErrMsgIdAndTxt("DRC:ControlUtil:BadInput","requesting contact pt %d but body only has %d pts",*pt_iter,b->contact_pts.cols());
@@ -214,7 +214,7 @@ int contactConstraintsBV(RigidBodyManipulator *r, int nc, double mu, std::vector
   double norm = sqrt(1+mu*mu); // because normals and ds are orthogonal, the norm has a simple form
   
   for (std::vector<SupportStateElement>::iterator iter = supp.begin(); iter!=supp.end(); iter++) {
-    RigidBody* b = &(r->bodies[iter->body_idx]);
+    std::unique_ptr<RigidBody>& b = r->bodies[iter->body_idx];
     if (nc>0) {
       for (std::set<int>::iterator pt_iter=iter->contact_pt_inds.begin(); pt_iter!=iter->contact_pt_inds.end(); pt_iter++) {
         if (*pt_iter<0 || *pt_iter>=b->contact_pts.cols()) mexErrMsgIdAndTxt("DRC:ControlUtil:BadInput","requesting contact pt %d but body only has %d pts",*pt_iter,b->contact_pts.cols());
@@ -273,7 +273,7 @@ MatrixXd individualSupportCOPs(RigidBodyManipulator* r, const std::vector<Suppor
       const auto& Bj = B.middleCols(beta_start, active_support_length);
       const auto& betaj = beta.segment(beta_start, active_support_length);
 
-      const auto& contact_positions = r->bodies[active_support.body_idx].contact_pts;
+      const auto& contact_positions = r->bodies[active_support.body_idx]->contact_pts;
       Vector3d force = Vector3d::Zero();
       Vector3d torque = Vector3d::Zero();
 
@@ -309,3 +309,4 @@ template void angleDiff(const MatrixBase<Vector3d> &, const MatrixBase<Vector3d>
 template mxArray* eigenToMatlab(Matrix<double,-1,-1> &);
 template mxArray* eigenToMatlab(Matrix<double,-1,1> &);
 template mxArray* eigenToMatlab(Matrix<double,6,1> &);
+template mxArray* eigenToMatlab(Matrix<double,3,1> &);
