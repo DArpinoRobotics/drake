@@ -4,11 +4,14 @@ classdef QPController < MIMODrakeSystem
   % optionally supports including angular momentum and body acceleration
   % costs/constraints.
   methods
-  function obj = QPController(r,body_accel_input_frames,controller_data,options)
+  function obj = QPController(r,body_accel_input_frames,external_force_input_frames,controller_data,options)
     % @param r rigid body manipulator instance
     % @param body_accel_input_frames cell array or coordinate frames for
     %    desired body accelerations. coordinates are ordered as:
     %    [body_index, xdot, ydot, zdot, roll_dot, pitch_dot, yaw_dot]
+    % @param external_force_frames cell array or coordinate frames for
+    %    inputting external forces to the dynamics constraints (e.g., for
+    %    when walking while carrying objects)
     % @param controller_data QPControllerData object containing the matrices that
     % define the underlying linear system, the ZMP trajectory, Riccati
     % solution, etc.
@@ -17,7 +20,7 @@ classdef QPController < MIMODrakeSystem
     typecheck(r,'Biped');
     typecheck(controller_data,'QPControllerData');
 
-    if nargin>3
+    if nargin>4
       typecheck(options,'struct');
     else
       options = struct();
@@ -25,7 +28,7 @@ classdef QPController < MIMODrakeSystem
 
     qddframe = controller_data.acceleration_input_frame; % input frame for desired qddot
 
-    input_frame = MultiCoordinateFrame({r.getStateFrame,qddframe,FootContactState,body_accel_input_frames{:}});
+    input_frame = MultiCoordinateFrame({r.getStateFrame,qddframe,FootContactState,body_accel_input_frames{:},external_force_input_frames{:}});
 
     % whether to output generalized accelerations AND inputs (u)
     if ~isfield(options,'output_qdd')
@@ -48,6 +51,7 @@ classdef QPController < MIMODrakeSystem
     obj.numq = getNumPositions(r);
     obj.controller_data = controller_data;
     obj.n_body_accel_inputs = length(body_accel_input_frames);
+    obj.n_external_force_inputs = length(external_force_input_frames);
 
     if isfield(options,'dt')
       % controller update rate
@@ -316,7 +320,7 @@ classdef QPController < MIMODrakeSystem
     
     qdd_lb =-500*ones(1,nq);
     qdd_ub = 500*ones(1,nq);
-    w_qdd = obj.w_qdd;
+    w_qdd_ = obj.w_qdd;
 
     if (obj.use_mex==0 || obj.use_mex==2)
       kinsol = doKinematics(r,q,false,true,qd);
@@ -333,6 +337,14 @@ classdef QPController < MIMODrakeSystem
 
       [H,C,B] = manipulatorDynamics(r,q,qd);
 
+      for ii=1:obj.n_external_force_inputs
+        frame_input = varargin{ii+obj.n_body_accel_inputs+3};
+        frame_ind = frame_input(1);
+        force_torque = frame_input(2:7);
+        [~,Jb] = forwardKin(r,kinsol,frame_ind,[0;0;0],1);
+        C = C + Jb'*force_torque;
+      end
+      
       H_float = H(float_idx,:);
       C_float = C(float_idx);
 
@@ -497,7 +509,7 @@ classdef QPController < MIMODrakeSystem
       % w_grf*quad(beta) + quad(kdot_des - (A*qdd + Adot*qd))
       if nc > 0
         Hqp = Iqdd'*Jcom'*R_DQyD_ls*Jcom*Iqdd;
-        Hqp(1:nq,1:nq) = Hqp(1:nq,1:nq) + diag(w_qdd);
+        Hqp(1:nq,1:nq) = Hqp(1:nq,1:nq) + diag(w_qdd_);
         if include_angular_momentum
           Hqp = Hqp + Iqdd'*Ak'*obj.W_kdot*Ak*Iqdd;
         end
@@ -507,7 +519,7 @@ classdef QPController < MIMODrakeSystem
         fqp = fqp + (x_bar'*S + 0.5*s1')*B_ls*Jcom*Iqdd;
         fqp = fqp - u0'*R_ls*Jcom*Iqdd;
         fqp = fqp - y0'*Qy*D_ls*Jcom*Iqdd;
-        fqp = fqp - (w_qdd.*qddot_des)'*Iqdd;
+        fqp = fqp - (w_qdd_.*qddot_des)'*Iqdd;
         if include_angular_momentum
           fqp = fqp + qd'*Akdot'*obj.W_kdot*Ak*Iqdd;
           fqp = fqp - kdot_des'*obj.W_kdot*Ak*Iqdd;
@@ -597,10 +609,6 @@ classdef QPController < MIMODrakeSystem
       end
       y = u;
 
-      if (obj.use_mex==2)
-        des.y = y;
-      end
-
       % % compute V,Vdot
       % if (nc>0)
       %   %V = x_bar'*S*x_bar + s1'*x_bar + s2;
@@ -621,13 +629,13 @@ classdef QPController < MIMODrakeSystem
       if (obj.use_mex==1)
         [y,qdd] = QPControllermex(obj.mex_ptr.data,obj.solver==0,qddot_des,x,...
             varargin{4:end},condof,supp,A_ls,B_ls,Qy,R_ls,C_ls,D_ls,...
-            S,s1,s1dot,s2dot,x0,u0,y0,qdd_lb,qdd_ub,w_qdd,mu,height);
+            S,s1,s1dot,s2dot,x0,u0,y0,qdd_lb,qdd_ub,w_qdd_,mu,height);
       else
         [y_mex,mex_qdd,info_mex,active_supports_mex,~,Hqp_mex,fqp_mex,...
           Aeq_mex,beq_mex,Ain_mex,bin_mex,Qf,Qeps] = ...
           QPControllermex(obj.mex_ptr.data,obj.solver==0,qddot_des,x,...
           varargin{4:end},condof,supp,A_ls,B_ls,Qy,R_ls,C_ls,D_ls,S,s1,...
-          s1dot,s2dot,x0,u0,y0,qdd_lb,qdd_ub,w_qdd,mu,height);
+          s1dot,s2dot,x0,u0,y0,qdd_lb,qdd_ub,w_qdd_,mu,height);
 
         if (nc>0)
           valuecheck(active_supports_mex,active_supports);
@@ -713,6 +721,7 @@ classdef QPController < MIMODrakeSystem
     output_qdd = false;
     body_accel_input_weights; % array of doubles, negative values signal constraints
     n_body_accel_inputs;
+    n_external_force_inputs;
     body_accel_bounds;
     n_body_accel_bounds;
   end

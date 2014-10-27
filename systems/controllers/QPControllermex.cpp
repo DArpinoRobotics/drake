@@ -62,6 +62,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     pm= myGetProperty(pobj,"n_body_accel_bounds");
     pdata->n_body_accel_bounds = (int) mxGetScalar(pm); 
 
+    pm= myGetProperty(pobj,"n_external_force_inputs");
+    pdata->n_external_force_inputs = (int) mxGetScalar(pm); 
+
     mxArray* body_accel_bounds = myGetProperty(pobj,"body_accel_bounds");
     Vector6d vecbound;
     for (int i=0; i<pdata->n_body_accel_bounds; i++) {
@@ -199,7 +202,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     memcpy(v.data(),mxGetPr(prhs[narg++]),sizeof(double)*7);
     body_accel_inputs.push_back(v);
   }
-  
+
+  vector<VectorXd,aligned_allocator<VectorXd>> external_force_inputs;
+  for (int i=0; i<pdata->n_external_force_inputs; i++) {
+    assert(mxGetM(prhs[narg])==7); assert(mxGetN(prhs[narg])==1);
+    VectorXd ft = VectorXd::Zero(7,1);
+    memcpy(ft.data(),mxGetPr(prhs[narg++]),sizeof(double)*7);
+    external_force_inputs.push_back(ft);
+  }
+
   int num_condof;
   VectorXd condof;
   if (!mxIsEmpty(prhs[narg])) {
@@ -277,6 +288,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   pdata->r->HandC(q,qd,(MatrixXd*)NULL,pdata->H,pdata->C,(MatrixXd*)NULL,(MatrixXd*)NULL,(MatrixXd*)NULL);
+
+  MatrixXd orig = MatrixXd::Zero(4,1);
+  orig(3,0) = 1;
+  MatrixXd Jb(6,nq);
+  int body_or_frame_id;
+  Vector6d force_torque;
+  for (int i=0; i<pdata->n_external_force_inputs; i++) {
+    body_or_frame_id = (int)(external_force_inputs[i][0])-1;
+    force_torque = external_force_inputs[i].bottomRows(6);
+    pdata->r->forwardJac(body_or_frame_id,orig,1,Jb);
+    pdata->C += Jb.transpose()*force_torque;
+  }
 
   pdata->H_float = pdata->H.topRows(6);
   pdata->H_act = pdata->H.bottomRows(nu);
@@ -398,11 +421,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   // add in body spatial equality constraints
   VectorXd body_vdot;
-  MatrixXd orig = MatrixXd::Zero(4,1);
-  orig(3,0) = 1;
   int body_idx;
   int equality_ind = 6+neps;
-  MatrixXd Jb(6,nq);
   MatrixXd Jbdot(6,nq);
   for (int i=0; i<pdata->n_body_accel_inputs; i++) {
     if (pdata->body_accel_input_weights(i) < 0) {

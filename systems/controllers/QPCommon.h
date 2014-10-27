@@ -34,6 +34,7 @@ struct QPControllerData {
   int n_body_accel_inputs;
   int n_body_accel_eq_constraints;
   VectorXd body_accel_input_weights;
+  int n_external_force_inputs;
   int n_body_accel_bounds;
   std::vector<int> accel_bound_body_idx;
   std::vector<Vector6d,aligned_allocator<Vector6d>> min_body_acceleration;
