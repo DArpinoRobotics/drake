@@ -115,8 +115,8 @@ classdef Biped < LeggedRobot
 
       [Axy, bxy] = poly2lincon([0, params.max_forward_step, 0, -params.max_forward_step],...
                                [params.min_step_width, params.nom_step_width, params.max_step_width, params.nom_step_width]);
-      [Axz, bxz] = poly2lincon([0, params.nom_forward_step, params.max_forward_step, params.nom_forward_step, 0, -params.max_forward_step], ...
-                               [params.nom_upward_step, params.nom_upward_step, 0, -params.nom_downward_step, -params.nom_downward_step, 0]);
+      [Axz, bxz] = poly2lincon([-params.max_forward_step, params.max_forward_step, params.max_forward_step, -params.max_forward_step],...
+                               [params.nom_upward_step, params.nom_upward_step, -params.nom_downward_step, -params.nom_downward_step]);
       A = [Axy, zeros(size(Axy, 1), 4);
            Axz(:,1), zeros(size(Axz, 1), 1), Axz(:,2), zeros(size(Axz, 1), 3);
            0 0 0 0 0 -1;
