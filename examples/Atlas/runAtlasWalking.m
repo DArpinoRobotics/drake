@@ -19,7 +19,7 @@ if ~isfield(example_options,'use_bullet') example_options.use_bullet = false; en
 if ~isfield(example_options,'use_angular_momentum') example_options.use_angular_momentum = false; end
 if ~isfield(example_options,'navgoal')
 %  navgoal = [2*rand();0.25*randn();0;0;0;0];
-  example_options.navgoal = [1.5;0;0;0;0;0];
+  example_options.navgoal = [0.0;0;0;0;0;0];
 end
 if ~isfield(example_options,'terrain'), example_options.terrain = RigidBodyFlatTerrain; end
 
@@ -61,9 +61,20 @@ lfoot_navgoal(1:3) = lfoot_navgoal(1:3) + R*[0;0.13;0];
 
 % Plan footsteps to the goal
 goal_pos = struct('right', rfoot_navgoal, 'left', lfoot_navgoal);
+
 footstep_plan = r.planFootsteps(x0(1:nq), goal_pos);
 
+footstep_plan.footsteps(3).pos = [0 -0.13 0 0 0 0]';
+footstep_plan.footsteps(4).pos = [0 0.13 0 0 0 0]';
+%footstep_plan.footsteps(5).pos = [0 -0.13 0 0 0 0]';
+
 walking_plan_data = r.planWalkingZMP(x0(1:r.getNumPositions()), footstep_plan);
+
+% hack job for atlas:
+% abs((tc_lfoot.pts(:,1) -  tc_lfoot.pts(:,4))) / 2 = [0.13,0.0624]
+% tf: [0.048, 0 , 0.0811]
+feetToCorners = [[-0.13 -0.13 0.13 0.13];[0.064 -.064 0.064 -.064];[0 0 0 0]];
+atlasUtil.plotWalkingTrajPre(r, walking_plan_data, x0(1:nq), feetToCorners);
 
 traj = atlasUtil.simulateWalking(r, walking_plan_data, example_options.use_mex, false, example_options.use_bullet, example_options.use_angular_momentum, true);
 

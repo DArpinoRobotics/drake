@@ -32,6 +32,7 @@ if nargin < 4; safe_regions = []; end
 if ~isfield(options, 'method_handle'); options.method_handle = @footstepPlanner.alternatingMIQP; end
 if ~isfield(options, 'step_params'); options.step_params = struct(); end
 options.step_params = obj.applyDefaultFootstepParams(options.step_params);
+%options.step_params.max_num_steps = 2;
 
 if isnumeric(start_pos_or_q)
   start_pos = obj.feetPosition(start_pos_or_q);
