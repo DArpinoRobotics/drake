@@ -25,8 +25,11 @@ classdef QPController < MIMODrakeSystem
 
     qddframe = controller_data.acceleration_input_frame; % input frame for desired qddot
 
-    input_frame = MultiCoordinateFrame({r.getStateFrame,qddframe,valkyrieFrames.FootContactState,body_accel_input_frames{:}});
-    %input_frame = MultiCoordinateFrame({r.getStateFrame,qddframe,atlasFrames.FootContactState,body_accel_input_frames{:}});
+    if typecheck(r, 'Atlas')
+        input_frame = MultiCoordinateFrame({r.getStateFrame,qddframe,atlasFrames.FootContactState,body_accel_input_frames{:}});
+    elseif typecheck(r, 'Valkyrie')
+        input_frame = MultiCoordinateFrame({r.getStateFrame,qddframe,valkyrieFrames.FootContactState,body_accel_input_frames{:}});
+    end
 
     % whether to output generalized accelerations AND inputs (u)
     if ~isfield(options,'output_qdd')
