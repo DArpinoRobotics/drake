@@ -637,6 +637,7 @@ bool RigidBodyManipulator::collisionDetect( VectorXd& phi,
                                             const vector<int>& bodies_idx,
                                             bool use_margins)
 {
+  cout << "Call to RigidBodyManipulator::collisionDetect with vector of body indexes\n";
   vector<DrakeCollision::ElementId> ids_to_check;
   for (auto body_idx_iter = bodies_idx.begin();
        body_idx_iter !=bodies_idx.end();
