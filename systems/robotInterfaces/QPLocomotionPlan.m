@@ -678,6 +678,10 @@ classdef QPLocomotionPlan < QPControllerPlan
       obj.qtraj = qtraj;
       obj.duration = obj.qtraj.tspan(end) - obj.qtraj.tspan(1);
       obj.support_times = [obj.qtraj.tspan(1); inf];
+      if(options.track_com_traj)
+        obj = obj.setCOMTraj();
+        obj = obj.setLQR_for_COM();
+      end
 
       if isfield(options,'supports') && isfield(options,'support_times')
         obj.supports = options.supports;
