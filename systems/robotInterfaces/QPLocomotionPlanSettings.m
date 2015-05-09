@@ -300,6 +300,9 @@ classdef QPLocomotionPlanSettings
         obj.zmptraj = comgoal;
         obj.zmp_final = obj.zmptraj;
         [~, obj.V, ~, obj.LIP_height] = obj.robot.planZMPController(comgoal, x0(1:obj.robot.getNumPositions()));
+      else
+        % comgoal doesn't matter here, so we can just set it to [0;0] and it will have no effect
+        [~, obj.V, ~, obj.LIP_height] = obj.robot.planZMPController([0;0], x0(1:obj.robot.getNumPositions()));
       end
 
       for j = 1:num_bodies_to_track
