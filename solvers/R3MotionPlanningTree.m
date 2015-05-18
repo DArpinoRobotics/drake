@@ -29,5 +29,31 @@ classdef R3MotionPlanningTree < CartesianMotionPlanningTree
       end
       obj.lcmgl.switchBuffers();
     end
+    
+    function gamma = gamma(obj)
+        freeSpaceVolume = prod(obj.sampling_ub - obj.sampling_lb);
+        unitBallVolume = 4/3*pi;
+        d = 3; %for 3D space
+        gamma = (2*(1+1/d))^(1/d)*(freeSpaceVolume/unitBallVolume)^(1/d);
+    end
+    
+    function Xnear = near(obj, q, eta)
+        if nargin < 3, eta = Inf; end
+        q = q(1:3); % in case the complete state is given
+        gamma = obj.gamma();
+        d = 3; %for 3D space
+        r = min([gamma*(log(obj.n)/obj.n)^(1/d), eta]);
+        Xnear = 1:obj.n;
+        for i = 1:obj.n
+            if abs(obj.V(i)-q) > r
+                Xnear = Xnear(Xnear ~= i);
+            end
+        end
+    end
+            
+    
+    function cost = distanceCost(obj, idPoint1, idPoint2)
+%         cost = obj.
+    end
   end
 end
