@@ -177,39 +177,6 @@ classdef MotionPlanningTree
       end
     end
     
-    function [obj, path_ids, info] = rrtStar(obj, x_start, x_goal, options)
-        if nargin < 4, options = struct(); end
-        defaultOptions.display_after_every = 1;
-        defaultOptions.N = 10000;
-        defaultOptions.visualize = true;
-        options = applyDefaults(options, defaultOptions);
-        assert(obj.isValid(x_start))
-        obj = obj.init(x_start);
-        
-        last_drawn_edge_num = 1;
-        
-        for i = 1:options.N  
-            [obj, path_ids, info] = rrtStarIteration(obj, x_start, x_goal, options);
-            if options.visualize && (obj.n - last_drawn_edge_num > options.display_after_every)
-                obj = obj.drawTree(last_drawn_edge_num);
-                drawnow
-                last_drawn_edge_num = obj.n-1;
-            end
-        end
-    end
-    
-    function [obj, path_ids, info] = rrtStarIteration(obj, x_start, x_goal, options)
-      sample = obj.randomSample();
-      [obj, q_new, id_near] = newPoint(obj, sample);
-      Xnear = obj.trees{obj.tspace_idx}.trees{1}.near(q_new);
-      for i = 1:length(Xnear)
-          drawTreePoint(Xnear(i), obj);
-      end
-      [obj, id_new] = obj.addVertex(q_new, id_near);
-      info = 1;
-      path_ids = [];
-    end
-
     function [TA, TB, path_ids_A, path_ids_B] = rrtConnectIteration(TA, TB, goal_bias)
       x_sample = TA.randomSample();
       [TA, status, id_new] = extend(TA, x_sample);
