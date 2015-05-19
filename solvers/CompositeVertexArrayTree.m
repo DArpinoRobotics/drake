@@ -88,5 +88,12 @@ classdef CompositeVertexArrayTree < VertexArrayMotionPlanningTree
         q(obj.idx{i}) = obj.trees{i}.randomSample();
       end
     end
+    
+    function obj = setParentId(obj, id, idParent)
+      obj = setParentId@VertexArrayMotionPlanningTree(obj, id, idParent);
+      for i = 1:obj.num_trees
+        obj.trees{i} = obj.trees{i}.setParentId(id, idParent);
+      end
+    end
   end
 end

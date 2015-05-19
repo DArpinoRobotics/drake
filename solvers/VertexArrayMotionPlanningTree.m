@@ -64,5 +64,9 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       %   child-classes represent the points in their search spaces.
       q = q_array(:,index);
     end
+    
+    function obj = setParentId(obj, id, idParent)
+      obj.parent(id) = idParent;
+    end
   end
 end
