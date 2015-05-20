@@ -21,5 +21,11 @@ if (${bot2-vis_FOUND} AND ${Boost_FOUND} )
    pods_use_pkg_config_packages(drake_urdf_renderer bot2-lcmgl-renderer)
    pods_install_libraries(drake_urdf_renderer)
 
+   pods_install_headers(drake_urdf_renderer.h DESTINATION drake)
+   pods_install_pkg_config_file(drake_urdf_renderer
+    LIBS -ldrake_urdf_renderer
+    REQUIRES
+    VERSION 0.0.1)
+
    target_link_libraries(drake_viewer drake_urdf_renderer)
 endif()
