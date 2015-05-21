@@ -95,5 +95,12 @@ classdef CompositeVertexArrayTree < VertexArrayMotionPlanningTree
         obj.trees{i} = obj.trees{i}.setParentId(id, idParent);
       end
     end
+    
+    function obj = removeVertices(obj, id)
+      obj = removeVertices@VertexArrayMotionPlanningTree(obj, id);
+      for i = 1:obj.num_trees
+        obj.trees{i} = obj.trees{i}.removeVertices(id);
+      end
+    end
   end
 end

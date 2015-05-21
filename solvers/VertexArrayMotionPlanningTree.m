@@ -68,5 +68,20 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
     function obj = setParentId(obj, id, idParent)
       obj.parent(id) = idParent;
     end
+    
+    function obj = removeVertices(obj, ids)
+      %Rebuild the parent-child relationships
+      for i = 1:obj.n
+        if all(ids ~= i)
+          obj.parent(i) = obj.parent(i) - nnz(ids < obj.parent(i));
+        end
+      end
+      %Delete the vertices
+      obj.V(:, ids) = [];
+      obj.V(:, end+1:obj.N) = NaN(obj.num_vars, length(ids));
+      obj.parent(ids) = [];
+      obj.parent(end+1:obj.N) = NaN(1, length(ids));
+      obj.n = obj.n - length(ids);
+    end
   end
 end
