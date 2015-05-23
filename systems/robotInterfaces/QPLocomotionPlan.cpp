@@ -666,21 +666,29 @@ void QPLocomotionPlan::updatePlanShift(double t_plan, const std::vector<bool>& c
       if (QPLocomotionPlan::isSupportingBody(side_it->second, next_support)) {
         if (contact_force_detected[side_it->second]) {
           for (auto body_motion_it = settings.body_motions.begin(); body_motion_it != settings.body_motions.end(); ++body_motion_it) {
-            int body_motion_body_id = robot.parseBodyOrFrameID(body_motion_it->getBodyOrFrameId());
+            Matrix4d Tframe;
+            int body_motion_body_id = robot.parseBodyOrFrameID(body_motion_it->getBodyOrFrameId(), &Tframe);
+            Isometry3d T_origin_to_frame;
+            T_origin_to_frame.matrix() = Tframe;
             if (body_motion_body_id == side_it->second) {
               int world = 0;
               int rotation_type = 0;
-              Vector3d foot_frame_origin_actual = robot.forwardKinNew(Vector3d::Zero().eval(), body_motion_it->getBodyOrFrameId(), world, rotation_type, 0).value();
-              Vector3d foot_frame_origin_planned = body_motion_it->getTrajectory().value(t_plan).topRows<3>();
-              // std::cout << "actual: " << foot_frame_origin_actual.transpose() << " planned: " << foot_frame_origin_planned.transpose() << std::endl;
-              foot_shifts[side_it->first] = foot_frame_origin_planned - foot_frame_origin_actual;
+              Vector3d foot_origin_actual = robot.forwardKinNew(Vector3d::Zero().eval(), body_motion_body_id, world, rotation_type, 0).value();
+              Matrix<double, 6, 1> foot_frame_planned_xyzexp = body_motion_it->getTrajectory().value(t_plan);
+              Isometry3d foot_frame_planned = Isometry3d(Translation<double, 3>(Vector3d(foot_frame_planned_xyzexp.head<3>())));
+              Vector3d foot_frame_planned_exp = foot_frame_planned_xyzexp.tail<3>();
+              Vector4d foot_frame_planned_quat = expmap2quat(foot_frame_planned_exp, 0).value();
+              foot_frame_planned.rotate(quat2eigenQuaternion(foot_frame_planned_quat));
+              Isometry3d foot_origin_planned =  foot_frame_planned * T_origin_to_frame.inverse();
+              std::cout << "actual: " << foot_origin_actual.transpose() << " frame planned: " << foot_frame_planned_xyzexp.head<3>().transpose() << " origin planned: " << foot_origin_planned.translation().transpose() << std::endl;
+              foot_shifts[side_it->first] = foot_origin_planned.translation() - foot_origin_actual;
               break;
             }
           }
         }
       }
     }
-    // std::cout << "right: " << foot_shifts.at(Side::RIGHT).transpose() << "left: " << foot_shifts.at(Side::LEFT).transpose() << std::endl;
+    std::cout << "right: " << foot_shifts.at(Side::RIGHT).transpose() << "left: " << foot_shifts.at(Side::LEFT).transpose() << std::endl;
     last_foot_shift_time = t_plan;
     this->updateZMPController(t_plan, last_support_fraction, next_support_fraction, transition_fraction);
   }
