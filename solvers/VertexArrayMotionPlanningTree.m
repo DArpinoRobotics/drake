@@ -12,6 +12,7 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
   properties (Access = protected)
     V
     parent
+    children
   end
 
   methods (Abstract)
@@ -32,6 +33,7 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       sizecheck(q_init, 'colvec');
       obj.V = NaN(obj.num_vars, obj.N);
       obj.parent = NaN(1, obj.N);
+      obj.children = {};
       [obj,id_last] = obj.addVertex(q_init, 1);
     end
 
@@ -43,6 +45,8 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       [obj, id] = addVertex@MotionPlanningTree(obj, q, id_parent);
       obj.V(:,obj.n) = q; 
       obj.parent(obj.n) = id_parent; 
+      obj.children{obj.n} = [];
+      obj.children{id_parent} = [obj.children{id_parent}; obj.n];
     end
 
     function q = getVertex(obj, id)
@@ -66,7 +70,10 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
     end
     
     function obj = setParentId(obj, id, idParent)
+      oldParent = obj.parent(id);
+      obj.children{oldParent} = obj.children{oldParent}(obj.children{oldParent} ~= id);
       obj.parent(id) = idParent;
+      obj.children{idParent} = [obj.children{idParent}; id];
     end
     
     function obj = removeVertices(obj, ids)
@@ -76,6 +83,7 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
           obj.parent(i) = obj.parent(i) - nnz(ids < obj.parent(i));
         end
       end
+      %TODO!!!!!!!!!! Rebuild children arrays
       %Delete the vertices
       obj.V(:, ids) = [];
       obj.V(:, end+1:obj.N) = NaN(obj.num_vars, length(ids));
