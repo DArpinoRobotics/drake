@@ -245,6 +245,17 @@ double PiecewisePolynomial<CoefficientType>::segmentValueAtGlobalAbscissa(int se
 }
 
 template <typename CoefficientType>
+MatrixXd PiecewisePolynomial<CoefficientType>::segmentMatrixValueAtGlobalAbscissa(int segment_index, double t) const {
+  MatrixXd ret(rows(), cols());
+  for (DenseIndex row = 0; row < rows(); row++) {
+    for (DenseIndex col = 0; col < cols(); col++) {
+      ret(row, col) = segmentValueAtGlobalAbscissa(segment_index, t, row, col);
+    }
+  }
+  return ret;
+}
+
+template <typename CoefficientType>
 Eigen::DenseIndex PiecewisePolynomial<CoefficientType>::rows() const
 {
   if (polynomials.size() > 0)

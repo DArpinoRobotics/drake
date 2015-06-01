@@ -439,7 +439,10 @@ void QPLocomotionPlan::updateSwingTrajectory(double t_plan, BodyMotionData& body
   PiecewisePolynomial<double>& trajectory = body_motion_data.getTrajectory();
   VectorXd x1 = trajectory.value(trajectory.getEndTime(takeoff_segment_index));
   VectorXd x2 = trajectory.value(trajectory.getEndTime(takeoff_segment_index + 1));
-  VectorXd xf = trajectory.value(trajectory.getEndTime(takeoff_segment_index + 2));
+  VectorXd xf = trajectory.segmentMatrixValueAtGlobalAbscissa(takeoff_segment_index + 3, trajectory.getStartTime(takeoff_segment_index + 3));
+
+  // Move the final knot point down slightly to give us some ground-seeking behavior
+    xf(2) -= 0.01;
 
   // first knot point from current position
   auto x0_xyzquat = robot.forwardKinNew((Vector3d::Zero()).eval(), body_motion_data.getBodyOrFrameId(), 0, 2, 1);

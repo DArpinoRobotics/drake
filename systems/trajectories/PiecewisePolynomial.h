@@ -103,8 +103,9 @@ public:
     Eigen::DenseIndex rows, Eigen::DenseIndex cols, Eigen::DenseIndex num_coefficients_per_polynomial,
     const std::vector<double>& segment_times);
 
-protected:
   double segmentValueAtGlobalAbscissa(int segment_index, double t, Eigen::DenseIndex row, Eigen::DenseIndex col) const;
+
+  Eigen::MatrixXd segmentMatrixValueAtGlobalAbscissa(int segment_index, double t) const;
 };
 
 #endif /* DRAKE_SYSTEMS_TRAJECTORIES_PIECEWISEPOLYNOMIAL_H_ */
