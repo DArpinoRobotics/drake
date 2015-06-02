@@ -77,13 +77,17 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
     end
     
     function obj = removeVertices(obj, ids)
+      %Rebuild children arrays
+      for i = ids
+        ch = obj.children{obj.getParentId(i)};
+        obj.children{obj.getParentId(i)} = ch(ch ~= i);
+      end
       %Rebuild the parent-child relationships
       for i = 1:obj.n
         if all(ids ~= i)
           obj.parent(i) = obj.parent(i) - nnz(ids < obj.parent(i));
         end
       end
-      %TODO!!!!!!!!!! Rebuild children arrays
       %Delete the vertices
       obj.V(:, ids) = [];
       obj.V(:, end+1:obj.N) = NaN(obj.num_vars, length(ids));
