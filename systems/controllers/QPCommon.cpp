@@ -20,6 +20,37 @@ double logisticSigmoid(double L, double k, double x, double x0) {
   return L / (1.0 + exp(-k * (x - x0)));
 }
 
+double signedDistanceInsideAnkleLimits(double akx, double aky, Vector2d *closestFace=NULL) {
+  // Note to future archaeologists:
+  // This is copied straight out of atlasUtil.cpp's ankleCloseToLimits function. We could probably rewrite ankleCloseToLimits to use this code, and we should probably move this function to atlasUtil, but I'm not going to because the DRC starts tomorrow. Sorry. -rdeits
+
+  // A*x <= b
+  // A*x - b <= 0
+  // -(A*x - b) >= 0
+  // distance_inside = -(A*x - b)
+  Matrix<double, 8, 2> A; 
+  Matrix<double, 8, 1> b;
+  A << 0.5044,   -0.8635,   
+       0.1059,   -0.9944, 
+       1.0000,    0.0000,
+       -0.1083,   -0.9941,
+       -0.5044,   -0.8635,
+       0.4510,    0.8925,
+       -1.0000,   -0.0000,
+       -0.4555,    0.8902;
+  b << 1.0253,    1.0137,    0.6411,    1.0143,    1.0253,    0.6163,    0.6411,    0.6183;
+  Vector2d ankle;
+  ankle << akx, aky;
+  VectorXd dist = -(A * ankle - b);
+  VectorXd::Index min_ndx;
+  double min_dist = dist.minCoeff(&min_ndx);
+  if (closestFace) {
+    *closestFace = A.row(min_ndx);
+  }
+  return min_dist;
+}
+
+
 PIDOutput wholeBodyPID(NewQPControllerData *pdata, double t, const Ref<const VectorXd> &q, const Ref<const VectorXd> &qd, const Ref<const VectorXd> &q_des, WholeBodyParams *params) {
   // Run a PID controller on the whole-body state to produce desired accelerations and reference posture
   PIDOutput out;
@@ -84,6 +115,50 @@ VectorXd velocityReference(NewQPControllerData *pdata, double t, const Ref<Vecto
       qdd_limited(pos_ind) = std::min(qdd(pos_ind), 0.0);
     }
   }
+  // Additionally check the combined ankle x-y limits, since they're physically coupled
+  Vector2d closest_akxy_face;
+  Vector2i akxy_ind;
+  double xy_dist;
+  int pos_ind;
+  akxy_ind << rpc->position_indices.at("r_leg_akx"), rpc->position_indices.at("r_leg_aky");
+  xy_dist = signedDistanceInsideAnkleLimits(q(akxy_ind(0)), q(akxy_ind(1)), &closest_akxy_face);
+  // std::cout << "r: ";
+  // std::cout << "q: " << q(akxy_ind(0)) << " " << q(akxy_ind(1)) << " ";
+  if (xy_dist < LEG_INTEGRATOR_DEACTIVATION_MARGIN) {
+    for (int i=0; i < 2; i++) {
+      std::cout << i << " ";
+      pos_ind = akxy_ind(i);
+      if (closest_akxy_face(i) > 0.4) {
+        qdd_limited(pos_ind) = std::min(qdd(pos_ind), 0.0);
+        // std::cout << "min ";
+      } else if (closest_akxy_face(i) < -0.4) {
+        qdd_limited(pos_ind) = std::max(qdd(pos_ind), 0.0);
+        // std::cout << "max ";
+      } else {
+        // std::cout << "ok ";
+      }
+    }
+  }
+  akxy_ind << rpc->position_indices.at("l_leg_akx"), rpc->position_indices.at("l_leg_aky");
+  xy_dist = signedDistanceInsideAnkleLimits(q(akxy_ind(0)), q(akxy_ind(1)), &closest_akxy_face);
+  // std::cout << "l: ";
+  // std::cout << "q: " << q(akxy_ind(0)) << " " << q(akxy_ind(1)) << " ";
+  if (xy_dist < LEG_INTEGRATOR_DEACTIVATION_MARGIN) {
+    for (int i=0; i < 2; i++) {
+      // std::cout << i << " ";
+      pos_ind = akxy_ind(i);
+      if (closest_akxy_face(i) > 0.4) {
+        qdd_limited(pos_ind) = std::min(qdd(pos_ind), 0.0);
+        // std::cout << "min ";
+      } else if (closest_akxy_face(i) < -0.4) {
+        qdd_limited(pos_ind) = std::max(qdd(pos_ind), 0.0);
+        // std::cout << "max ";
+      } else {
+        // std::cout << "ok ";
+      }
+    }
+  }
+  // std::cout << std::endl;
 
   pdata->state.vref_integrator_state = (1-params->eta)*pdata->state.vref_integrator_state + params->eta*qd + qdd_limited*dt;
 
