@@ -95,5 +95,10 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       obj.parent(end+1:obj.N) = NaN(1, length(ids));
       obj.n = obj.n - length(ids);
     end
+    
+    function children = getChildren(obj, parentId)
+      children = obj.children{parentId};
+    end
+    
   end
 end
