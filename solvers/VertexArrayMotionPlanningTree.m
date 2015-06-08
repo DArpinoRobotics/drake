@@ -13,7 +13,7 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
     V
     parent
     children
-    CoM
+    centroid
   end
 
   methods (Abstract)
@@ -35,7 +35,7 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       obj.V = NaN(obj.num_vars, obj.N);
       obj.parent = NaN(1, obj.N);
       obj.children = {};
-      obj.CoM = q_init;
+      obj.centroid = q_init;
       [obj,id_last] = obj.addVertex(q_init, 1);
     end
 
@@ -49,8 +49,8 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       obj.parent(obj.n) = id_parent; 
       obj.children{obj.n} = [];
       obj.children{id_parent} = [obj.children{id_parent}; obj.n];
-      if ~isempty(obj.CoM) && obj.n > 1
-        obj.CoM = obj.CoM + (q - obj.CoM) / obj.n;
+      if ~isempty(obj.centroid) && obj.n > 1
+        obj.centroid = obj.centroid + (q - obj.centroid) / obj.n;
       end
     end
 
@@ -103,6 +103,10 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
     
     function children = getChildren(obj, parentId)
       children = obj.children{parentId};
+    end
+    
+    function centroid = getCentroid(obj)
+      centroid = obj.centroid;
     end
     
   end
