@@ -37,6 +37,12 @@ function [q,info,infeasible_constraint] = inverseKin(obj,q_seed,q_nom,varargin)
 
 % note: keeping typecheck/sizecheck to a minimum because this might have to
 % run inside a dynamical system (so should be fast)
+
+%% TIMING
+global IKTimes
+IKTime = tic;
+%%
+
 use_mex = false;
 if(isa(varargin{end},'IKoptions'))
   ikoptions = varargin{end};
@@ -68,4 +74,8 @@ if (use_mex || ikoptions.use_mex) && exist('inverseKinmex','file')
 else
   [q,info,infeasible_constraint]= inverseKinBackend(obj,1,[],q_seed,q_nom,varargin{:},ikoptions);
 end
+
+%% TIMING
+IKTimes(end+1) = toc(IKTime);
+%%
 end

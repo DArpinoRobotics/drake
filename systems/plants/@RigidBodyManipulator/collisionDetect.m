@@ -48,6 +48,11 @@ function [phi,normal,xA,xB,idxA,idxB] = collisionDetect(obj,kinsol, ...
 % @retval idxB - (m x 1) The index of body B.
 % @ingroup Collision
 
+%% TIMING
+global collisionTimes
+collisionTime = tic;
+%%
+
 if ~isstruct(kinsol)  
   % treat input as collisionDetect(obj,q)
   kinsol = doKinematics(obj,kinsol);
@@ -163,5 +168,14 @@ if ~isempty(obj.terrain) && ...
     xB = [xB,xB_new];
     idxB = [idxB,idxB_new];
   end
+  
 end
+  %% TIMING
+  collisionTimes(1, end+1) = toc(collisionTime);
+  if isfield(active_collision_options, 'body_idx')
+    collisionTimes(2, end) = length(active_collision_options.body_idx);
+  else
+    collisionTimes(2, end) = size(obj.body, 2);
+  end
+  %%
 
