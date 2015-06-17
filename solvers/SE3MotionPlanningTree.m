@@ -42,6 +42,12 @@ classdef SE3MotionPlanningTree < CompositeVertexArrayTree
       rpy = quat2rpy(quat);
       phi = obj.rbm.collisionDetect([xyz; rpy]);
       valid = all(phi > obj.min_distance);
+      global collisionFails
+      global tree
+      collisionFails(1, end +1) = valid;
+      collisionFails(2, end) = obj.n;
+      collisionFails(3, end) = 1;
+      collisionFails(4, end) = tree;
     end
 
     function obj = addGeometryToRobot(obj, geom)

@@ -76,6 +76,7 @@ else
 end
 
 %% TIMING
-IKTimes(end+1) = toc(IKTime);
+IKTimes(1, end+1) = toc(IKTime);
+IKTimes(2, end) = info;
 %%
 end
