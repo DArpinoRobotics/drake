@@ -43,6 +43,14 @@ classdef VertexArrayMotionPlanningTree < MotionPlanningTree & MotionPlanningProb
       q = obj.sampling_lb + (obj.sampling_ub-obj.sampling_lb).*rand(obj.num_vars,1);
     end
 
+    function q = normRandomSample(obj, qMean, stdDev)
+      if nargin < 3, stdDev = 1; end
+      stdDev = ones(obj.num_vars, 1)*stdDev;
+      q = normrnd(qMean, stdDev, obj.num_vars, 1);
+      q = min([obj.sampling_ub q], [], 2);
+      q = max([obj.sampling_lb q], [], 2);
+    end
+
     function [obj, id] = addVertex(obj, q, id_parent)
       [obj, id] = addVertex@MotionPlanningTree(obj, q, id_parent);
       obj.V(:,obj.n) = q; 
