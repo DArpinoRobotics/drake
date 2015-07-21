@@ -37,7 +37,6 @@ function [q,info,infeasible_constraint] = inverseKin(obj,q_seed,q_nom,varargin)
 
 % note: keeping typecheck/sizecheck to a minimum because this might have to
 % run inside a dynamical system (so should be fast)
-
 use_mex = false;
 if(isa(varargin{end},'IKoptions'))
   ikoptions = varargin{end};

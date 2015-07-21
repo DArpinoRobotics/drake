@@ -28,6 +28,6 @@ classdef R3MotionPlanningTree < CartesianMotionPlanningTree
         obj.lcmgl.sphere(pt, 0.005, 20, 20);
       end
       obj.lcmgl.switchBuffers();
-    end    
+    end
   end
 end

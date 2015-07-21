@@ -163,6 +163,5 @@ if ~isempty(obj.terrain) && ...
     xB = [xB,xB_new];
     idxB = [idxB,idxB_new];
   end
-  
 end
 

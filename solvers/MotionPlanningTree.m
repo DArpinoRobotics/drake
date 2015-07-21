@@ -65,7 +65,7 @@ classdef MotionPlanningTree
       assert(obj.isValid(x_start))
       assert(obj.isValid(x_goal))
       last_drawn_edge_num = 1;
-      info = Info(Info.FAIL_OTHER);
+      info = 2;
       while obj.n < options.N
         try_goal = rand<options.goal_bias;
         if try_goal
@@ -80,7 +80,7 @@ classdef MotionPlanningTree
         end
 
         if try_goal && status == obj.REACHED
-          info = Info(Info.SUCCESS);
+          info = 1;
           path_ids = obj.getPathToVertex(obj.n);
           if options.visualize
             drawPath(obj, path_ids);
@@ -139,7 +139,7 @@ classdef MotionPlanningTree
         assert(TB.isValid(x_goal))
         TB = TB.init(x_goal);
       end
-      info = Info(Info.FAIL_OTHER);
+      info = 2;
       last_drawn_edge_num_A = 1;
       last_drawn_edge_num_B = 1;
       for i = 1:options.N
@@ -165,7 +165,7 @@ classdef MotionPlanningTree
         end
         if ~isempty(path_ids_A)
           assert(~isempty(path_ids_B))
-          info = Info(Info.SUCCESS);
+          info = 1;
 
           % Add the remainder of the solution path onto the forward tree
           [TA, id_last] = TA.addPath(TB,fliplr(path_ids_B(1:end-1)), path_ids_A(end));
