@@ -177,7 +177,7 @@ classdef MotionPlanningTree
         end
       end
     end
-    
+
     function [TA, TB, path_ids_A, path_ids_B] = rrtConnectIteration(TA, TB, goal_bias)
       x_sample = TA.randomSample();
       [TA, status, id_new] = extend(TA, x_sample);

@@ -44,11 +44,11 @@ classdef BotVisualizer < RigidBodyVisualizer
       lc.subscribe('DRAKE_VIEWER_STATUS',obj.status_agg);
 
       % check if there is an instance of drake_viewer already running
-      [~,ck] = system('ps ax 2> /dev/null | grep -i ipab_viewer | grep -c -v grep');
+      [~,ck] = system('ps ax 2> /dev/null | grep -i drake_viewer | grep -c -v grep');
       if (str2num(ck)<1) 
         % if not, then launch one...
         disp('launching drake_viewer...');
-        retval = systemWCMakeEnv([fullfile(pods_get_bin_path,'ipab_viewer'),' &> ipab_viewer.out &']);
+        retval = systemWCMakeEnv([fullfile(pods_get_bin_path,'drake_viewer'),' &> drake_viewer.out &']);
         
         if ismac % I'm missing valid acks on mac
           pause(1);
