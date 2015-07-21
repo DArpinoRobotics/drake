@@ -9,7 +9,6 @@ classdef SE3MotionPlanningTree < CompositeVertexArrayTree
       T_R3 = R3MotionPlanningTree();
       T_SO3 = SO3MotionPlanningTree();
       obj = obj@CompositeVertexArrayTree({T_R3, T_SO3},{'R3', 'SO3'});
-      obj = obj.setLCMGL('SE3MotionPlanningTree',[0, 0, 0]);
       urdf = fullfile(getDrakePath, 'systems', 'plants', 'test', 'FallingBrick.urdf');
       options.floating = true;
       obj.rbm = RigidBodyManipulator(urdf, options);
@@ -42,12 +41,12 @@ classdef SE3MotionPlanningTree < CompositeVertexArrayTree
       rpy = quat2rpy(quat);
       phi = obj.rbm.collisionDetect([xyz; rpy]);
       valid = all(phi > obj.min_distance);
-      global collisionFails
-      global tree
-      collisionFails(1, end +1) = valid;
-      collisionFails(2, end) = obj.n;
-      collisionFails(3, end) = 1;
-      collisionFails(4, end) = tree;
+%       global collisionFails
+%       global tree
+%       collisionFails(1, end +1) = valid;
+%       collisionFails(2, end) = obj.n;
+%       collisionFails(3, end) = 1;
+%       collisionFails(4, end) = tree;
     end
 
     function obj = addGeometryToRobot(obj, geom)
